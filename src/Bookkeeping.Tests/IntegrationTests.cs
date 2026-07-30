@@ -114,7 +114,7 @@ public class IntegrationTests : IDisposable
         await SaveAsync();
 
         // Beginning balance $10,000 cash
-        await engine.RecordBeginningBalanceAsync("1000", 10000m, 1);
+        await engine.RecordBeginningBalanceAsync("1000", 10000m, DateTime.Today, 1);
         await SaveAsync();
 
         // Donate $3,000
@@ -136,7 +136,7 @@ public class IntegrationTests : IDisposable
         // Transfer $2,000 to bank
         await engine.RecordTransferAsync(new CashBankTransfer
         {
-            Date = DateTime.Today, Direction = "CashToBank", Amount = 2000m, CreatedByUserId = 1
+            Date = DateTime.Today, Direction = TransferDirection.CashToBank, Amount = 2000m, CreatedByUserId = 1
         });
         await SaveAsync();
 

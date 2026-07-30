@@ -80,9 +80,9 @@ public partial class ReconciliationViewModel : ObservableObject
     private async Task CompleteReconciliationAsync()
     {
         if (IsReconciling) return;
-        if (StatementBalance <= 0 || ClearedBalance <= 0)
+        if (!BankTransactions.Any(r => r.IsCleared))
         {
-            StatusMessage = "Please enter a statement balance and clear at least one transaction.";
+            StatusMessage = "Please clear at least one transaction before completing reconciliation.";
             return;
         }
         IsReconciling = true;

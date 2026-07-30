@@ -43,6 +43,7 @@ public partial class CashBankViewModel : ObservableObject
     // Beginning balance form
     [ObservableProperty] private bool _isSettingBeginningBalance;
     [ObservableProperty] private string _beginningBalanceAccount = "Cash";
+    [ObservableProperty] private DateTime _beginningBalanceDate = DateTime.Today;
     [ObservableProperty] private decimal _beginningBalanceAmount;
     [ObservableProperty] private string? _beginningBalanceError;
 
@@ -177,7 +178,7 @@ public partial class CashBankViewModel : ObservableObject
             var transfer = new CashBankTransfer
             {
                 Date = TransferDate,
-                Direction = TransferDirection,
+                Direction = TransferDirection == "CashToBank" ? TransferDirection.CashToBank : TransferDirection.BankToCash,
                 Amount = TransferAmount,
                 Notes = TransferNotes?.Trim(),
                 CreatedByUserId = 1,
@@ -213,6 +214,7 @@ public partial class CashBankViewModel : ObservableObject
     private void ShowBeginningBalanceForm()
     {
         BeginningBalanceAccount = "Cash";
+        BeginningBalanceDate = DateTime.Today;
         BeginningBalanceAmount = 0;
         BeginningBalanceError = null;
         IsSettingBeginningBalance = true;
@@ -234,11 +236,25 @@ public partial class CashBankViewModel : ObservableObject
             return;
         }
 
+        var accountCode = BeginningBalanceAccount == "Cash" ? "1000" : "1010";
+
+        // Prevent duplicate beginning balances for the same account
+        var account = await _db.Accounts.FirstOrDefaultAsync(a => a.Code == accountCode);
+        if (account != null)
+        {
+            var hasExisting = await _db.JournalEntries
+                .AnyAsync(j => j.Reference == "OPEN" && j.Lines.Any(l => l.AccountId == account.Id));
+            if (hasExisting)
+            {
+                BeginningBalanceError = $"A beginning balance for {BeginningBalanceAccount} already exists. Delete the existing one first.";
+                return;
+            }
+        }
+
         using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            var accountCode = BeginningBalanceAccount == "Cash" ? "1000" : "1010";
-            await _journal.RecordBeginningBalanceAsync(accountCode, BeginningBalanceAmount, 1);
+            await _journal.RecordBeginningBalanceAsync(accountCode, BeginningBalanceAmount, BeginningBalanceDate, 1);
             await _db.SaveChangesAsync();
             await transaction.CommitAsync();
 

@@ -156,7 +156,7 @@ public partial class ReportsViewModel : ObservableObject
                     break;
                 case "Fund": _exportService.ExportFundToExcel(FundReport, path); break;
                 case "Sponsor": _exportService.ExportSponsorToExcel(SponsorReport, FilterSponsor?.Name ?? "Sponsor", path); break;
-                case "Income Statement":
+                case "Statement of Activities":
                     if (IncomeStatement != null)
                         _exportService.ExportIncomeStatementToExcel(IncomeStatement, path);
                     break;

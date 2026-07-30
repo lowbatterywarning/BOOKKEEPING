@@ -42,7 +42,7 @@ public interface IJournalEngine
     /// Debits the asset, credits the equity account.
     /// Returns the created JournalEntry.
     /// </summary>
-    Task<JournalEntry> RecordBeginningBalanceAsync(string accountCode, decimal amount, int createdByUserId);
+    Task<JournalEntry> RecordBeginningBalanceAsync(string accountCode, decimal amount, DateTime date, int createdByUserId);
 
     /// <summary>
     /// Validate that a journal entry is balanced (total debits = total credits).

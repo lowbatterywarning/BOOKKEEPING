@@ -18,13 +18,13 @@ public partial class DashboardViewModel : ObservableObject
     private decimal _bankBalance;
 
     [ObservableProperty]
-    private decimal _totalIncomeThisMonth;
+    private decimal _totalIncomeMonthToDate;
 
     [ObservableProperty]
-    private decimal _totalExpensesThisMonth;
+    private decimal _totalExpensesMonthToDate;
 
     [ObservableProperty]
-    private decimal _surplusDeficit;
+    private decimal _surplusDeficitMonthToDate;
 
     [ObservableProperty]
     private ObservableCollection<JournalEntry> _recentTransactions = new();
@@ -68,17 +68,17 @@ public partial class DashboardViewModel : ObservableObject
             BankBalance = debits - credits;
         }
 
-        // Income this month
-        TotalIncomeThisMonth = await _db.Donations
+        // Income month-to-date
+        TotalIncomeMonthToDate = await _db.Donations
             .Where(d => d.Date >= monthStart && d.Date < tomorrow)
             .SumAsync(d => d.Amount);
 
-        // Expenses this month
-        TotalExpensesThisMonth = await _db.Expenses
+        // Expenses month-to-date
+        TotalExpensesMonthToDate = await _db.Expenses
             .Where(e => e.Date >= monthStart && e.Date < tomorrow)
             .SumAsync(e => e.Amount);
 
-        SurplusDeficit = TotalIncomeThisMonth - TotalExpensesThisMonth;
+        SurplusDeficitMonthToDate = TotalIncomeMonthToDate - TotalExpensesMonthToDate;
 
         // Recent transactions
         var recent = await _db.JournalEntries

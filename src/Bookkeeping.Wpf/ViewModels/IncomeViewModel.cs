@@ -240,11 +240,32 @@ public partial class IncomeViewModel : ObservableObject
             return;
         }
 
+        // Generate the next income account code
+        var maxCode = await _db.Accounts
+            .Where(a => a.Code.StartsWith("4"))
+            .MaxAsync(a => (string?)a.Code);
+        var nextCode = string.IsNullOrEmpty(maxCode) ? "4001"
+            : int.TryParse(maxCode[1..], out int suffix) && suffix < 9999
+                ? $"4{(suffix + 1):D3}"
+                : $"4{DateTime.UtcNow:MMddHHmm}";
+
+        var incomeAccount = new Account
+        {
+            Code = nextCode,
+            Name = $"Donation Income - {NewCategoryName.Trim()}",
+            AccountType = AccountType.Income,
+            FundId = generalFund.Id,
+            IsSystem = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.Accounts.Add(incomeAccount);
+
         var category = new DonationCategory
         {
             Name = NewCategoryName.Trim(),
             Description = NewCategoryDescription?.Trim(),
             FundId = generalFund.Id,
+            IncomeAccount = incomeAccount,
             IsActive = true
         };
 

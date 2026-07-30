@@ -337,7 +337,7 @@ public class JournalEngineTests : IDisposable
         var transfer = new CashBankTransfer
         {
             Date = DateTime.UtcNow,
-            Direction = "CashToBank",
+            Direction = TransferDirection.CashToBank,
             Amount = 300m,
             CreatedByUserId = 1
         };
@@ -359,7 +359,7 @@ public class JournalEngineTests : IDisposable
         var transfer = new CashBankTransfer
         {
             Date = DateTime.UtcNow,
-            Direction = "CashToBank",
+            Direction = TransferDirection.CashToBank,
             Amount = 300m,
             CreatedByUserId = 1
         };
@@ -393,7 +393,7 @@ public class JournalEngineTests : IDisposable
         var transfer = new CashBankTransfer
         {
             Date = DateTime.UtcNow,
-            Direction = "BankToCash",
+            Direction = TransferDirection.BankToCash,
             Amount = 150m,
             CreatedByUserId = 1
         };
@@ -417,7 +417,7 @@ public class JournalEngineTests : IDisposable
         var transfer = new CashBankTransfer
         {
             Date = DateTime.UtcNow,
-            Direction = "Sideways",
+            Direction = (TransferDirection)99,
             Amount = 100m,
             CreatedByUserId = 1
         };
@@ -497,7 +497,7 @@ public class JournalEngineTests : IDisposable
         // Transfer $400 from Cash to Bank
         await _engine.RecordTransferAsync(new CashBankTransfer
         {
-            Date = DateTime.UtcNow, Direction = "CashToBank", Amount = 400m, CreatedByUserId = 1
+            Date = DateTime.UtcNow, Direction = TransferDirection.CashToBank, Amount = 400m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -602,7 +602,7 @@ public class JournalEngineTests : IDisposable
         // Try to transfer $200 from cash to bank - should fail
         var transfer = new CashBankTransfer
         {
-            Date = DateTime.UtcNow, Direction = "CashToBank", Amount = 200m, CreatedByUserId = 1
+            Date = DateTime.UtcNow, Direction = TransferDirection.CashToBank, Amount = 200m, CreatedByUserId = 1
         };
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _engine.RecordTransferAsync(transfer));

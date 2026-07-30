@@ -88,6 +88,7 @@ public class AppDbContext : DbContext
             e.Property(dc => dc.Name).HasMaxLength(100).IsRequired();
             e.Property(dc => dc.Description).HasMaxLength(500);
             e.HasOne(dc => dc.Fund).WithMany(f => f.DonationCategories).HasForeignKey(dc => dc.FundId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(dc => dc.IncomeAccount).WithMany().HasForeignKey("IncomeAccountId").OnDelete(DeleteBehavior.SetNull);
         });
 
         // ---- ExpenseCategory ----
@@ -97,6 +98,7 @@ public class AppDbContext : DbContext
             e.Property(ec => ec.Name).HasMaxLength(100).IsRequired();
             e.Property(ec => ec.Description).HasMaxLength(500);
             e.HasOne(ec => ec.Fund).WithMany().HasForeignKey(ec => ec.FundId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(ec => ec.ExpenseAccount).WithMany().HasForeignKey("ExpenseAccountId").OnDelete(DeleteBehavior.SetNull);
         });
 
         // ---- OrgProgram ----
@@ -152,7 +154,7 @@ public class AppDbContext : DbContext
         {
             e.HasIndex(t => t.Date);
             e.Property(t => t.Amount).HasColumnType("decimal(18,2)");
-            e.Property(t => t.Direction).HasMaxLength(20).IsRequired();
+            e.Property(t => t.Direction).HasConversion(new EnumToStringConverter<TransferDirection>()).HasMaxLength(20).IsRequired();
             e.Property(t => t.Notes).HasMaxLength(500);
             e.HasOne(t => t.JournalEntry).WithOne(j => j.CashBankTransfer).HasForeignKey<CashBankTransfer>(t => t.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(t => t.CreatedByUser).WithMany().HasForeignKey(t => t.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);

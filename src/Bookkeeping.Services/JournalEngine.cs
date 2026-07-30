@@ -167,7 +167,7 @@ public class JournalEngine : IJournalEngine
         Account debitAccount, creditAccount;
         string directionDesc;
 
-        if (transfer.Direction == "CashToBank")
+        if (transfer.Direction == TransferDirection.CashToBank)
         {
             debitAccount = bankAccount;
             creditAccount = cashAccount;
@@ -178,7 +178,7 @@ public class JournalEngine : IJournalEngine
                 throw new InvalidOperationException(
                     $"Insufficient Cash balance. Available: {cashBalance:C}, Required: {transfer.Amount:C}.");
         }
-        else if (transfer.Direction == "BankToCash")
+        else if (transfer.Direction == TransferDirection.BankToCash)
         {
             debitAccount = cashAccount;
             creditAccount = bankAccount;
@@ -191,7 +191,7 @@ public class JournalEngine : IJournalEngine
         }
         else
         {
-            throw new ArgumentException($"Invalid transfer direction: {transfer.Direction}. Must be 'CashToBank' or 'BankToCash'.");
+            throw new ArgumentException($"Invalid transfer direction: {transfer.Direction}.", nameof(transfer));
         }
 
         var entry = new JournalEntry
@@ -283,7 +283,7 @@ public class JournalEngine : IJournalEngine
     /// Record a beginning/opening balance for an asset account (Cash or Bank).
     /// Debits the asset, credits the appropriate equity account based on the asset's fund.
     /// </summary>
-    public async Task<JournalEntry> RecordBeginningBalanceAsync(string accountCode, decimal amount, int createdByUserId)
+    public async Task<JournalEntry> RecordBeginningBalanceAsync(string accountCode, decimal amount, DateTime date, int createdByUserId)
     {
         if (amount <= 0)
             throw new ArgumentException("Beginning balance amount must be greater than zero.", nameof(amount));
@@ -308,7 +308,7 @@ public class JournalEngine : IJournalEngine
 
         var entry = new JournalEntry
         {
-            Date = DateTime.Today,
+            Date = date,
             Description = $"Beginning Balance - {assetAccount.Name}",
             Reference = "OPEN",
             CreatedByUserId = createdByUserId,

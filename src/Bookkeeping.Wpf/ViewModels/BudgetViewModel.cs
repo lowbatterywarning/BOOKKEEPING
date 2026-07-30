@@ -107,12 +107,21 @@ public partial class BudgetViewModel : ObservableObject
             }
         }
 
+        // Unsubscribe old rows to prevent memory leaks
+        foreach (var oldRow in BudgetRows)
+            oldRow.PropertyChanged -= OnBudgetRowChanged;
+
         BudgetRows = new ObservableCollection<BudgetRow>(rows);
 
         // Subscribe to each row's changes to update totals in real time
         foreach (var row in rows)
-            row.PropertyChanged += (_, _) => RecalculateTotals();
+            row.PropertyChanged += OnBudgetRowChanged;
 
+        RecalculateTotals();
+    }
+
+    private void OnBudgetRowChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
         RecalculateTotals();
     }
 
@@ -124,7 +133,25 @@ public partial class BudgetViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task SaveAllBudgetsAsync()
+    {
+        foreach (var row in BudgetRows)
+            await PrepareBudgetSaveAsync(row);
+        await _db.SaveChangesAsync();
+        StatusMessage = "All budgets saved.";
+        RecalculateTotals();
+    }
+
+    [RelayCommand]
     private async Task SaveBudgetAsync(BudgetRow? row)
+    {
+        if (row == null) return;
+        await PrepareBudgetSaveAsync(row);
+        await _db.SaveChangesAsync();
+        StatusMessage = $"Budget for {row.Name} saved: {row.BudgetAmount:C}";
+    }
+
+    private async Task PrepareBudgetSaveAsync(BudgetRow? row)
     {
         if (row == null) return;
 
@@ -158,18 +185,6 @@ public partial class BudgetViewModel : ObservableObject
         {
             _db.Budgets.Add(new Budget { Year = SelectedYear, Amount = row.BudgetAmount, ExpenseCategoryId = categoryId, ProgramId = programId });
         }
-
-        await _db.SaveChangesAsync();
-        StatusMessage = $"Budget for {row.Name} saved: {row.BudgetAmount:C}";
-    }
-
-    [RelayCommand]
-    private async Task SaveAllBudgetsAsync()
-    {
-        foreach (var row in BudgetRows)
-            await SaveBudgetAsync(row);
-        StatusMessage = "All budgets saved.";
-        RecalculateTotals();
     }
 
     partial void OnSelectedYearChanged(int value) => _ = RefreshGridAsync();

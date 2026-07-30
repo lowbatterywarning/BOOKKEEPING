@@ -30,20 +30,20 @@
             </Border>
             <Border Background="#8e44ad" CornerRadius="8" Padding="15" Margin="0,0,10,10" Width="180">
                 <StackPanel>
-                    <TextBlock Text="REVENUE (THIS MONTH)" Foreground="White" FontSize="10" Opacity="0.8"/>
-                    <TextBlock Text="{Binding TotalIncomeThisMonth, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                    <TextBlock Text="REVENUE (MTD)" Foreground="White" FontSize="10" Opacity="0.8"/>
+                    <TextBlock Text="{Binding TotalIncomeMonthToDate, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
                 </StackPanel>
             </Border>
             <Border Background="#c0392b" CornerRadius="8" Padding="15" Margin="0,0,10,10" Width="180">
                 <StackPanel>
-                    <TextBlock Text="EXPENSES (THIS MONTH)" Foreground="White" FontSize="10" Opacity="0.8"/>
-                    <TextBlock Text="{Binding TotalExpensesThisMonth, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                    <TextBlock Text="EXPENSES (MTD)" Foreground="White" FontSize="10" Opacity="0.8"/>
+                    <TextBlock Text="{Binding TotalExpensesMonthToDate, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
                 </StackPanel>
             </Border>
             <Border Background="#e67e22" CornerRadius="8" Padding="15" Margin="0,0,10,10" Width="180">
                 <StackPanel>
                     <TextBlock Text="SURPLUS / DEFICIT" Foreground="White" FontSize="10" Opacity="0.8"/>
-                    <TextBlock Text="{Binding SurplusDeficit, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding SurplusDeficitMonthToDate, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
                 </StackPanel>
             </Border>
         </WrapPanel>

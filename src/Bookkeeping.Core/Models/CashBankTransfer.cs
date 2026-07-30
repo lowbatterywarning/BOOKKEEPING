@@ -1,3 +1,5 @@
+using Bookkeeping.Core.Enums;
+
 namespace Bookkeeping.Core.Models;
 
 /// <summary>
@@ -8,7 +10,7 @@ public class CashBankTransfer
 {
     public int Id { get; set; }
     public DateTime Date { get; set; }
-    public string Direction { get; set; } = string.Empty; // "CashToBank" or "BankToCash"
+    public TransferDirection Direction { get; set; }
     public decimal Amount { get; set; }
     public string? Notes { get; set; }
     public int JournalEntryId { get; set; }

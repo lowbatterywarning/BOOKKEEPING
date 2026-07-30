@@ -263,18 +263,18 @@ public class ReportService
         var funds = await _db.Funds.OrderBy(f => f.Name).ToListAsync();
         var fundIds = funds.Select(f => f.Id).ToList();
 
-        // Single grouped query for income
+        // Single grouped query for income (net: Credits - Debits for income accounts)
         var incomeByFund = await _db.JournalEntryLines
             .Where(l => l.FundId.HasValue && fundIds.Contains(l.FundId.Value) && l.Account.AccountType == Core.Enums.AccountType.Income)
             .GroupBy(l => l.FundId!.Value)
-            .Select(g => new { FundId = g.Key, Total = g.Sum(l => l.CreditAmount) })
+            .Select(g => new { FundId = g.Key, Total = g.Sum(l => l.CreditAmount - l.DebitAmount) })
             .ToListAsync();
 
-        // Single grouped query for expenses
+        // Single grouped query for expenses (net: Debits - Credits for expense accounts)
         var expensesByFund = await _db.JournalEntryLines
             .Where(l => l.FundId.HasValue && fundIds.Contains(l.FundId.Value) && l.Account.AccountType == Core.Enums.AccountType.Expense)
             .GroupBy(l => l.FundId!.Value)
-            .Select(g => new { FundId = g.Key, Total = g.Sum(l => l.DebitAmount) })
+            .Select(g => new { FundId = g.Key, Total = g.Sum(l => l.DebitAmount - l.CreditAmount) })
             .ToListAsync();
 
         var incomeDict = incomeByFund.ToDictionary(x => x.FundId, x => x.Total);

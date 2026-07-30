@@ -2,6 +2,7 @@ using Bookkeeping.Data;
 using Bookkeeping.Core.Models;
 using Bookkeeping.Core.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using System.IO;
 
 namespace Bookkeeping.Wpf.Services;
@@ -24,11 +25,18 @@ public class DatabaseInitializer
         {
             await InitializeInternalAsync();
         }
-        catch (Exception ex)
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 11 || ex.SqliteErrorCode == 26)
         {
-            System.Diagnostics.Debug.WriteLine($"DB init failed: {ex.Message}. Recreating database...");
+            // SQLITE_CORRUPT (11) or SQLITE_NOTADB (26) — database file is corrupted.
+            // Recreate from scratch to recover.
+            System.Diagnostics.Debug.WriteLine($"DB corruption detected (error {ex.SqliteErrorCode}): {ex.Message}. Recreating database...");
             try { await _db.Database.EnsureDeletedAsync(); } catch { }
             await InitializeInternalAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DB init failed: {ex.Message}");
+            throw;
         }
     }
 

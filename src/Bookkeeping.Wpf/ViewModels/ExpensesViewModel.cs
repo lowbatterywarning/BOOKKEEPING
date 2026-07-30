@@ -16,6 +16,7 @@ public partial class ExpensesViewModel : ObservableObject
     private readonly AppDbContext _db;
     private readonly IJournalEngine _journal;
     private readonly Services.AuditService _audit;
+    private readonly Services.ExportService _exportService;
 
     [ObservableProperty]
     private ObservableCollection<Expense> _expenses = new();
@@ -68,11 +69,12 @@ public partial class ExpensesViewModel : ObservableObject
 
     private readonly string _attachmentsFolder;
 
-    public ExpensesViewModel(AppDbContext db, IJournalEngine journal, Services.AuditService audit)
+    public ExpensesViewModel(AppDbContext db, IJournalEngine journal, Services.AuditService audit, Services.ExportService exportService)
     {
         _db = db;
         _journal = journal;
         _audit = audit;
+        _exportService = exportService;
         _attachmentsFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Bookkeeping", "attachments");
@@ -284,11 +286,32 @@ public partial class ExpensesViewModel : ObservableObject
             return;
         }
 
+        // Generate the next expense account code
+        var maxCode = await _db.Accounts
+            .Where(a => a.Code.StartsWith("5"))
+            .MaxAsync(a => (string?)a.Code);
+        var nextCode = string.IsNullOrEmpty(maxCode) ? "5001"
+            : int.TryParse(maxCode[1..], out int suffix) && suffix < 9999
+                ? $"5{(suffix + 1):D3}"
+                : $"5{DateTime.UtcNow:MMddHHmm}";
+
+        var expenseAccount = new Account
+        {
+            Code = nextCode,
+            Name = $"Expense - {NewCategoryName.Trim()}",
+            AccountType = AccountType.Expense,
+            FundId = generalFund.Id,
+            IsSystem = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.Accounts.Add(expenseAccount);
+
         var category = new ExpenseCategory
         {
             Name = NewCategoryName.Trim(),
             Description = NewCategoryDescription?.Trim(),
             FundId = generalFund.Id,
+            ExpenseAccount = expenseAccount,
             IsActive = true
         };
 
@@ -307,8 +330,7 @@ public partial class ExpensesViewModel : ObservableObject
         if (path == null) return;
 
         var orgName = _db.AppSettings.FirstOrDefault(s => s.Key == "OrganizationName")?.Value ?? "Organization";
-        var exportService = new Services.ExportService();
-        exportService.PrintCheck(expense.VendorName, expense.Amount, expense.Notes, orgName, path);
+        _exportService.PrintCheck(expense.VendorName, expense.Amount, expense.Notes, orgName, path);
 
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
