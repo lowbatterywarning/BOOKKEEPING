@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Bookkeeping.Core/Bookkeeping.Core.csproj" />
+    <Project Path="src/Bookkeeping.Data/Bookkeeping.Data.csproj" />
+    <Project Path="src/Bookkeeping.Services/Bookkeeping.Services.csproj" />
+    <Project Path="src/Bookkeeping.Tests/Bookkeeping.Tests.csproj" />
+    <Project Path="src/Bookkeeping.Wpf/Bookkeeping.Wpf.csproj" />
+  </Folder>
+</Solution>

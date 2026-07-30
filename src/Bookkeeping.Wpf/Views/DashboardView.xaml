@@ -1,0 +1,71 @@
+<UserControl x:Class="Bookkeeping.Wpf.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="800"
+             Loaded="UserControl_Loaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Dashboard" FontSize="24" FontWeight="Bold" Margin="0,0,0,15"/>
+
+        <!-- Summary Cards -->
+        <WrapPanel Grid.Row="1" Margin="0,0,0,15">
+            <Border Background="#27ae60" CornerRadius="8" Padding="15" Margin="0,0,10,10" Width="180">
+                <StackPanel>
+                    <TextBlock Text="CASH BALANCE" Foreground="White" FontSize="10" Opacity="0.8"/>
+                    <TextBlock Text="{Binding CashBalance, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+            <Border Background="#2980b9" CornerRadius="8" Padding="15" Margin="0,0,10,10" Width="180">
+                <StackPanel>
+                    <TextBlock Text="BANK BALANCE" Foreground="White" FontSize="10" Opacity="0.8"/>
+                    <TextBlock Text="{Binding BankBalance, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+            <Border Background="#8e44ad" CornerRadius="8" Padding="15" Margin="0,0,10,10" Width="180">
+                <StackPanel>
+                    <TextBlock Text="REVENUE (THIS MONTH)" Foreground="White" FontSize="10" Opacity="0.8"/>
+                    <TextBlock Text="{Binding TotalIncomeThisMonth, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+            <Border Background="#c0392b" CornerRadius="8" Padding="15" Margin="0,0,10,10" Width="180">
+                <StackPanel>
+                    <TextBlock Text="EXPENSES (THIS MONTH)" Foreground="White" FontSize="10" Opacity="0.8"/>
+                    <TextBlock Text="{Binding TotalExpensesThisMonth, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+            <Border Background="#e67e22" CornerRadius="8" Padding="15" Margin="0,0,10,10" Width="180">
+                <StackPanel>
+                    <TextBlock Text="SURPLUS / DEFICIT" Foreground="White" FontSize="10" Opacity="0.8"/>
+                    <TextBlock Text="{Binding SurplusDeficit, StringFormat={}{0:C}}" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+        </WrapPanel>
+
+        <!-- Recent Transactions -->
+        <Border Grid.Row="2" Background="White" CornerRadius="8" Padding="15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Recent Transactions" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <ListView Grid.Row="1" ItemsSource="{Binding RecentTransactions}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Date" Width="100" DisplayMemberBinding="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}"/>
+                            <GridViewColumn Header="Description" Width="300" DisplayMemberBinding="{Binding Description}"/>
+                            <GridViewColumn Header="Reference" Width="120" DisplayMemberBinding="{Binding Reference}"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

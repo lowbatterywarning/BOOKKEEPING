@@ -1,0 +1,33 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.mdb
+
+# VS Code
+.vscode/
+
+# Publish output
+publish/
+
+# Nested repos
+finance/
+
+# Database files (local dev data)
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Rider
+.idea/
+*.sln.iml

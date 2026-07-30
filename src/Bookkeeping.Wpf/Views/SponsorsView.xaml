@@ -1,0 +1,261 @@
+<UserControl x:Class="Bookkeeping.Wpf.Views.SponsorsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:Bookkeeping.Wpf.Converters"
+             mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="1000"
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+
+        <!-- Grey out inactive sponsor rows -->
+        <Style x:Key="InactiveRowStyle" TargetType="ListViewItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="False">
+                    <Setter Property="Opacity" Value="0.45"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Sort indicator template -->
+        <DataTemplate x:Key="SortHeaderTemplate">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding}"/>
+                <TextBlock x:Name="Arrow" Text="" FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header bar -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Sponsors" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                     Width="200" Margin="20,0,10,0" FontSize="13"/>
+            <Button Content="Search" Width="70" Background="#2980b9" Foreground="White"
+                    Command="{Binding LoadCommand}" Margin="0,0,8,0"/>
+            <Button Content="+ Add Sponsor" Width="120" Background="#27ae60" Foreground="White"
+                    FontWeight="SemiBold" Command="{Binding AddNewCommand}"/>
+            <CheckBox Content="Show Inactive" IsChecked="{Binding ShowInactive}"
+                      VerticalAlignment="Center" Margin="16,0,0,0"
+                      Command="{Binding LoadCommand}"/>
+        </StackPanel>
+
+        <!-- Filter bar -->
+        <Border Grid.Row="1" Background="White" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+            <WrapPanel>
+                <StackPanel Width="130" Margin="0,0,6,0">
+                    <TextBlock Text="Name" FontSize="10" Foreground="Gray"/>
+                    <TextBox Text="{Binding FilterName, UpdateSourceTrigger=PropertyChanged}" Height="24" FontSize="12"/>
+                </StackPanel>
+                <StackPanel Width="120" Margin="0,0,6,0">
+                    <TextBlock Text="Phone" FontSize="10" Foreground="Gray"/>
+                    <TextBox Text="{Binding FilterPhone, UpdateSourceTrigger=PropertyChanged}" Height="24" FontSize="12"/>
+                </StackPanel>
+                <StackPanel Width="150" Margin="0,0,6,0">
+                    <TextBlock Text="Email" FontSize="10" Foreground="Gray"/>
+                    <TextBox Text="{Binding FilterEmail, UpdateSourceTrigger=PropertyChanged}" Height="24" FontSize="12"/>
+                </StackPanel>
+                <StackPanel Width="130" Margin="0,0,6,0">
+                    <TextBlock Text="Address" FontSize="10" Foreground="Gray"/>
+                    <TextBox Text="{Binding FilterAddress, UpdateSourceTrigger=PropertyChanged}" Height="24" FontSize="12"/>
+                </StackPanel>
+                <Button Content="Apply Filters" Width="90" Background="#2980b9" Foreground="White"
+                        Height="24" Margin="0,12,0,0" Command="{Binding LoadCommand}"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- Edit Form -->
+        <Border Grid.Row="2" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,10"
+                Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel>
+                <TextBlock Text="{Binding EditErrorMessage}" Foreground="Red" Margin="0,0,0,6"
+                           Visibility="{Binding EditErrorMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="Name *" FontWeight="SemiBold" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                        <TextBlock Text="Phone" FontWeight="SemiBold" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding EditPhone, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Email" FontWeight="SemiBold" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding EditEmail, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                </Grid>
+                <Grid Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Address" FontWeight="SemiBold" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding EditAddress, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                </Grid>
+                <StackPanel Margin="0,8,0,0">
+                    <TextBlock Text="Notes" FontWeight="SemiBold" Margin="0,0,0,2"/>
+                    <TextBox Text="{Binding EditNotes, UpdateSourceTrigger=PropertyChanged}" Height="50"
+                             TextWrapping="Wrap" AcceptsReturn="True"/>
+                </StackPanel>
+                <Grid Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Targets by Category" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <ItemsControl ItemsSource="{Binding EditTargets}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="100"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding CategoryName}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="1" Text="{Binding TargetAmount, UpdateSourceTrigger=PropertyChanged}" Height="24"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Grid>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Content="Save" Width="80" Background="#2980b9" Foreground="White"
+                            Command="{Binding SaveCommand}"/>
+                    <Button Content="Cancel" Width="80" Margin="8,0,0,0"
+                            Command="{Binding CancelEditCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Sponsor List -->
+        <ListView Grid.Row="3" ItemsSource="{Binding Sponsors}"
+                  SelectedItem="{Binding SelectedSponsor}"
+                  MouseDoubleClick="ListView_MouseDoubleClick"
+                  ItemContainerStyle="{StaticResource InactiveRowStyle}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Name" Width="150">
+                        <GridViewColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <Button Content="Name" Background="Transparent" BorderThickness="0" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.SortByCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                        CommandParameter="Name"/>
+                            </DataTemplate>
+                        </GridViewColumn.HeaderTemplate>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Phone" Width="100">
+                        <GridViewColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <Button Content="Phone" Background="Transparent" BorderThickness="0" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.SortByCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                        CommandParameter="Phone"/>
+                            </DataTemplate>
+                        </GridViewColumn.HeaderTemplate>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Phone}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Email" Width="160">
+                        <GridViewColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <Button Content="Email" Background="Transparent" BorderThickness="0" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.SortByCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                        CommandParameter="Email"/>
+                            </DataTemplate>
+                        </GridViewColumn.HeaderTemplate>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Email}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Width="100">
+                        <GridViewColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <Button Content="This Month" Background="Transparent" BorderThickness="0" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.SortByCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                        CommandParameter="This Month"/>
+                            </DataTemplate>
+                        </GridViewColumn.HeaderTemplate>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DonationsThisMonth, StringFormat={}{0:C}}" HorizontalAlignment="Right"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Width="130">
+                        <GridViewColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <Button Content="This Year" Background="Transparent" BorderThickness="0" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.SortByCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                        CommandParameter="This Year"/>
+                            </DataTemplate>
+                        </GridViewColumn.HeaderTemplate>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding TargetDisplay}" HorizontalAlignment="Right" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding TargetProgress, StringFormat={}{0}%}" HorizontalAlignment="Right"
+                                               FontSize="10" Foreground="#27ae60"/>
+                                    <TextBlock Text="{Binding TargetDetails}" HorizontalAlignment="Right" FontSize="9"
+                                               Foreground="Gray" ToolTip="{Binding TargetDetails}"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="120"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Width="70">
+                        <GridViewColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <Button Content="Target" Background="Transparent" BorderThickness="0" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.SortByCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                        CommandParameter="Target %"/>
+                            </DataTemplate>
+                        </GridViewColumn.HeaderTemplate>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding TargetProgress, StringFormat={}{0}%}" HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Width="70">
+                        <GridViewColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <Button Content="Active" Background="Transparent" BorderThickness="0" FontWeight="SemiBold"
+                                        Command="{Binding DataContext.SortByCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                        CommandParameter="Active"/>
+                            </DataTemplate>
+                        </GridViewColumn.HeaderTemplate>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsActive, Mode=OneWay}"
+                                          Command="{Binding DataContext.ToggleActiveCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                          CommandParameter="{Binding}"
+                                          HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </Grid>
+</UserControl>

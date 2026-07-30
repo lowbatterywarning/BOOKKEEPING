@@ -1,0 +1,74 @@
+<UserControl x:Class="Bookkeeping.Wpf.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="900"
+             Loaded="UserControl_Loaded">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Settings" FontSize="24" FontWeight="Bold" Margin="0,0,0,15"/>
+
+            <!-- Organization Settings -->
+            <Border Grid.Row="1" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="Organization" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Width="300">
+                            <TextBlock Text="Organization Name" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding OrganizationName, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Backup Settings -->
+            <Border Grid.Row="2" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="Backup &amp; Restore" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <CheckBox Content="Enable automatic backup" IsChecked="{Binding AutoBackupEnabled}" Margin="0,0,10,0"/>
+                        <StackPanel Width="120" Margin="0,0,10,0">
+                            <TextBlock Text="Interval (hours)" FontSize="11"/>
+                            <TextBox Text="{Binding AutoBackupIntervalHours, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="🔄 Backup Now" Width="120" Background="#2980b9" Foreground="White"
+                                Command="{Binding BackupNowCommand}" IsEnabled="{Binding IsBackupInProgress, Converter={StaticResource InvertBoolConverter}}"/>
+                        <Button Content="💾 Backup To..." Width="110" Background="#27ae60" Foreground="White" Margin="8,0,0,0"
+                                Command="{Binding BackupToLocationCommand}"/>
+                        <Button Content="📥 Restore..." Width="100" Background="#e67e22" Foreground="White" Margin="8,0,0,0"
+                                Command="{Binding RestoreFromBackupCommand}"/>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding BackupStatus}" FontSize="12" Foreground="Gray" Margin="0,0,0,4"/>
+                    <TextBlock FontSize="11" Foreground="Gray" Margin="0,0,0,4">
+                        <Run Text="Database: "/><Run Text="{Binding DbPath}"/>
+                    </TextBlock>
+                    <TextBlock FontSize="11" Foreground="Gray">
+                        <Run Text="Attachments: "/><Run Text="{Binding AttachmentsPath}"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding LastBackupTime, StringFormat='Last backup: {0}'}" FontSize="11"
+                               Foreground="Gray" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Save Button -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="💾 Save Settings" Width="130" Background="#27ae60" Foreground="White"
+                        FontWeight="SemiBold" Command="{Binding SaveSettingsCommand}"/>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

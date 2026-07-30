@@ -1,0 +1,321 @@
+<UserControl x:Class="Bookkeeping.Wpf.Views.CashBankView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:Bookkeeping.Wpf.Converters"
+             mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="1100"
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header with action buttons -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Cash &amp; Bank Ledger" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Button Content="↔ Transfer" Width="100" Background="#8e44ad" Foreground="White"
+                    FontWeight="SemiBold" Margin="20,0,0,0" Command="{Binding ShowTransferFormCommand}"/>
+            <Button Content="Set Beginning Balance" Width="150" Background="#2980b9" Foreground="White"
+                    Margin="8,0,0,0" Command="{Binding ShowBeginningBalanceFormCommand}"/>
+        </StackPanel>
+
+        <!-- Transfer Form -->
+        <Border Grid.Row="1" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,8"
+                Visibility="{Binding IsTransferring, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel>
+                <TextBlock Text="Transfer Funds" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding TransferError}" Foreground="Red" Margin="0,0,0,6"
+                           Visibility="{Binding TransferError, Converter={StaticResource StringToVisibilityConverter}}"/>
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel Margin="0,0,10,0">
+                        <TextBlock Text="Date" FontWeight="SemiBold"/>
+                        <DatePicker SelectedDate="{Binding TransferDate}" Width="130"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,10,0" Width="150">
+                        <TextBlock Text="Direction" FontWeight="SemiBold"/>
+                        <ComboBox SelectedValue="{Binding TransferDirection}" SelectedValuePath="Tag" Height="28">
+                            <ComboBoxItem Content="Cash → Bank" Tag="CashToBank"/>
+                            <ComboBoxItem Content="Bank → Cash" Tag="BankToCash"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,10,0" Width="120">
+                        <TextBlock Text="Amount" FontWeight="SemiBold"/>
+                        <TextBox Text="{Binding TransferAmount, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                    <StackPanel Width="200">
+                        <TextBlock Text="Notes" FontWeight="SemiBold"/>
+                        <TextBox Text="{Binding TransferNotes, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Content="Execute Transfer" Width="120" Background="#8e44ad" Foreground="White"
+                            Command="{Binding ExecuteTransferCommand}"/>
+                    <Button Content="Cancel" Width="80" Margin="8,0,0,0"
+                            Command="{Binding CancelTransferCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Beginning Balance Form -->
+        <Border Grid.Row="1" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,8"
+                Visibility="{Binding IsSettingBeginningBalance, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel>
+                <TextBlock Text="Set Beginning Balance" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding BeginningBalanceError}" Foreground="Red" Margin="0,0,0,6"
+                           Visibility="{Binding BeginningBalanceError, Converter={StaticResource StringToVisibilityConverter}}"/>
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel Margin="0,0,10,0" Width="120">
+                        <TextBlock Text="Account" FontWeight="SemiBold"/>
+                        <ComboBox SelectedValue="{Binding BeginningBalanceAccount}" SelectedValuePath="Content" Height="28">
+                            <ComboBoxItem Content="Cash"/>
+                            <ComboBoxItem Content="Bank"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Width="150">
+                        <TextBlock Text="Opening Balance" FontWeight="SemiBold"/>
+                        <TextBox Text="{Binding BeginningBalanceAmount, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Content="Save" Width="80" Background="#2980b9" Foreground="White"
+                            Command="{Binding SetBeginningBalanceCommand}"/>
+                    <Button Content="Cancel" Width="80" Margin="8,0,0,0"
+                            Command="{Binding CancelBeginningBalanceCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Summary Cards -->
+        <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+            <!-- Cash Summary -->
+            <Border Background="#e8f5e9" CornerRadius="6" Padding="12" Margin="0,0,10,6" Width="250">
+                <StackPanel>
+                    <TextBlock Text="💵 CASH" FontSize="16" FontWeight="Bold" Foreground="#2e7d32" Margin="0,0,0,4"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Beginning:" FontSize="12"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CashBeginningBalance, StringFormat={}{0:C}}" FontSize="12"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="+ Revenue:" FontSize="12" Foreground="#2e7d32"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CashIncome, StringFormat={}{0:C}}" FontSize="12" Foreground="#2e7d32"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="- Expenses:" FontSize="12" Foreground="#c62828"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CashExpenses, StringFormat={}{0:C}}" FontSize="12" Foreground="#c62828"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="+ Transfers In:" FontSize="12" Foreground="#1565c0"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CashTransfersIn, StringFormat={}{0:C}}" FontSize="12" Foreground="#1565c0"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="- Transfers Out:" FontSize="12" Foreground="#e65100"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CashTransfersOut, StringFormat={}{0:C}}" FontSize="12" Foreground="#e65100"/>
+                    </Grid>
+                    <Separator Margin="0,4"/>
+                    <TextBlock Text="{Binding CashEndingBalance, StringFormat='Ending: {0:C}'}" FontSize="15"
+                               FontWeight="Bold" Foreground="#1b5e20"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Bank Summary -->
+            <Border Background="#e3f2fd" CornerRadius="6" Padding="12" Margin="0,0,10,6" Width="250">
+                <StackPanel>
+                    <TextBlock Text="🏦 BANK" FontSize="16" FontWeight="Bold" Foreground="#1565c0" Margin="0,0,0,4"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Beginning:" FontSize="12"/>
+                        <TextBlock Grid.Column="1" Text="{Binding BankBeginningBalance, StringFormat={}{0:C}}" FontSize="12"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="+ Revenue:" FontSize="12" Foreground="#2e7d32"/>
+                        <TextBlock Grid.Column="1" Text="{Binding BankIncome, StringFormat={}{0:C}}" FontSize="12" Foreground="#2e7d32"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="- Expenses:" FontSize="12" Foreground="#c62828"/>
+                        <TextBlock Grid.Column="1" Text="{Binding BankExpenses, StringFormat={}{0:C}}" FontSize="12" Foreground="#c62828"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="+ Transfers In:" FontSize="12" Foreground="#1565c0"/>
+                        <TextBlock Grid.Column="1" Text="{Binding BankTransfersIn, StringFormat={}{0:C}}" FontSize="12" Foreground="#1565c0"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="- Transfers Out:" FontSize="12" Foreground="#e65100"/>
+                        <TextBlock Grid.Column="1" Text="{Binding BankTransfersOut, StringFormat={}{0:C}}" FontSize="12" Foreground="#e65100"/>
+                    </Grid>
+                    <Separator Margin="0,4"/>
+                    <TextBlock Text="{Binding BankEndingBalance, StringFormat='Ending: {0:C}'}" FontSize="15"
+                               FontWeight="Bold" Foreground="#0d47a1"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Combined Summary -->
+            <Border Background="#fff3e0" CornerRadius="6" Padding="12" Margin="0,0,0,6" Width="200">
+                <StackPanel>
+                    <TextBlock Text="📊 TOTAL" FontSize="16" FontWeight="Bold" Foreground="#e65100" Margin="0,0,0,4"/>
+                    <TextBlock Text="Combined:" FontSize="12"/>
+                    <TextBlock FontSize="20" FontWeight="Bold" Foreground="#bf360c">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0:C}">
+                                <MultiBinding.Bindings>
+                                    <Binding Path="CashEndingBalance"/>
+                                    <Binding Path="BankEndingBalance"/>
+                                </MultiBinding.Bindings>
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <TextBlock FontSize="11" Foreground="Gray" Margin="0,4,0,0"
+                               Text="{Binding CashEndingBalance, StringFormat='Cash: {0:C}'}"/>
+                    <TextBlock FontSize="11" Foreground="Gray"
+                               Text="{Binding BankEndingBalance, StringFormat='Bank: {0:C}'}"/>
+                </StackPanel>
+            </Border>
+        </WrapPanel>
+
+        <!-- Dual Ledgers -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Cash Ledger -->
+            <Border Grid.Column="0" Background="White" CornerRadius="6" Padding="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Cash Transactions" FontSize="14" FontWeight="SemiBold"
+                               Foreground="#2e7d32" Margin="0,0,0,6"/>
+                    <ListView Grid.Row="1" ItemsSource="{Binding CashTransactions}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Date" Width="80" DisplayMemberBinding="{Binding Date, StringFormat={}{0:MM/dd/yy}}"/>
+                                <GridViewColumn Header="Description" Width="150" DisplayMemberBinding="{Binding Description}"/>
+                                <GridViewColumn Header="Type" Width="80" DisplayMemberBinding="{Binding Type}"/>
+                                <GridViewColumn Header="Debit" Width="75">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Debit, StringFormat={}{0:N2}}" HorizontalAlignment="Right"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Credit" Width="75">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Credit, StringFormat={}{0:N2}}" HorizontalAlignment="Right"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Balance" Width="80">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Balance, StringFormat={}{0:C}}" HorizontalAlignment="Right"
+                                                       FontWeight="SemiBold"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch"
+                          Background="#bdc3c7" ResizeBehavior="PreviousAndNext"/>
+
+            <!-- Bank Ledger -->
+            <Border Grid.Column="2" Background="White" CornerRadius="6" Padding="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Bank Transactions" FontSize="14" FontWeight="SemiBold"
+                               Foreground="#1565c0" Margin="0,0,0,6"/>
+                    <ListView Grid.Row="1" ItemsSource="{Binding BankTransactions}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Date" Width="80" DisplayMemberBinding="{Binding Date, StringFormat={}{0:MM/dd/yy}}"/>
+                                <GridViewColumn Header="Description" Width="150" DisplayMemberBinding="{Binding Description}"/>
+                                <GridViewColumn Header="Type" Width="80" DisplayMemberBinding="{Binding Type}"/>
+                                <GridViewColumn Header="Debit" Width="75">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Debit, StringFormat={}{0:N2}}" HorizontalAlignment="Right"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Credit" Width="75">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Credit, StringFormat={}{0:N2}}" HorizontalAlignment="Right"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Balance" Width="80">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Balance, StringFormat={}{0:C}}" HorizontalAlignment="Right"
+                                                       FontWeight="SemiBold"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
