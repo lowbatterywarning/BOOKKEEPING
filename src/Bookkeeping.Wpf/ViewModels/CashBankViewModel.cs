@@ -178,7 +178,7 @@ public partial class CashBankViewModel : ObservableObject
             var transfer = new CashBankTransfer
             {
                 Date = TransferDate,
-                Direction = TransferDirection == "CashToBank" ? TransferDirection.CashToBank : TransferDirection.BankToCash,
+                Direction = TransferDirection == "CashToBank" ? Core.Enums.TransferDirection.CashToBank : Core.Enums.TransferDirection.BankToCash,
                 Amount = TransferAmount,
                 Notes = TransferNotes?.Trim(),
                 CreatedByUserId = 1,

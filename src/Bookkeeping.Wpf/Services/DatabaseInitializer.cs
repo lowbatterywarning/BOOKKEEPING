@@ -91,21 +91,24 @@ public class DatabaseInitializer
             .Where(c => c.IncomeAccount == null)
             .ToListAsync();
 
-        foreach (var cat in donationCats)
+        if (donationCats.Count > 0)
         {
-            var nextCode = await GetNextAccountCodeAsync("4");
-            var account = new Account
+            var nextSuffix = await GetNextAccountSuffixAsync("4");
+            foreach (var cat in donationCats)
             {
-                Code = nextCode,
-                Name = $"Donation Income - {cat.Name}",
-                AccountType = Core.Enums.AccountType.Income,
-                FundId = cat.FundId,
-                IsSystem = false,
-                CreatedAt = DateTime.UtcNow
-            };
-            _db.Accounts.Add(account);
-            cat.IncomeAccount = account;
-            changed = true;
+                var account = new Account
+                {
+                    Code = $"{4}{nextSuffix++:D3}",
+                    Name = $"Donation Income - {cat.Name}",
+                    AccountType = Core.Enums.AccountType.Income,
+                    FundId = cat.FundId,
+                    IsSystem = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.Accounts.Add(account);
+                cat.IncomeAccount = account;
+                changed = true;
+            }
         }
 
         // Ensure every ExpenseCategory has an ExpenseAccount
@@ -114,25 +117,50 @@ public class DatabaseInitializer
             .Where(c => c.ExpenseAccount == null)
             .ToListAsync();
 
-        foreach (var cat in expenseCats)
+        if (expenseCats.Count > 0)
         {
-            var nextCode = await GetNextAccountCodeAsync("5");
-            var account = new Account
+            var nextSuffix = await GetNextAccountSuffixAsync("5");
+            foreach (var cat in expenseCats)
             {
-                Code = nextCode,
-                Name = $"Expense - {cat.Name}",
-                AccountType = Core.Enums.AccountType.Expense,
-                FundId = cat.FundId,
-                IsSystem = false,
-                CreatedAt = DateTime.UtcNow
-            };
-            _db.Accounts.Add(account);
-            cat.ExpenseAccount = account;
-            changed = true;
+                var account = new Account
+                {
+                    Code = $"{5}{nextSuffix++:D3}",
+                    Name = $"Expense - {cat.Name}",
+                    AccountType = Core.Enums.AccountType.Expense,
+                    FundId = cat.FundId,
+                    IsSystem = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.Accounts.Add(account);
+                cat.ExpenseAccount = account;
+                changed = true;
+            }
         }
 
         if (changed)
             await _db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Returns the next available 3-digit suffix for a given account code prefix (e.g., "4" or "5").
+    /// Reads all existing codes once, then increments locally to avoid duplicates within the batch.
+    /// </summary>
+    private async Task<int> GetNextAccountSuffixAsync(string prefix)
+    {
+        var codes = await _db.Accounts
+            .Where(a => a.Code.StartsWith(prefix))
+            .Select(a => a.Code)
+            .ToListAsync();
+
+        int maxSuffix = 0;
+        foreach (var code in codes)
+        {
+            var suffixStr = code[prefix.Length..];
+            if (int.TryParse(suffixStr, out int suffix) && suffix > maxSuffix)
+                maxSuffix = suffix;
+        }
+
+        return maxSuffix + 1;
     }
 
     private async Task<string> GetNextAccountCodeAsync(string prefix)
