@@ -3,13 +3,16 @@ using CommunityToolkit.Mvvm.Input;
 using Bookkeeping.Core.Models;
 using Bookkeeping.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Bookkeeping.Wpf.ViewModels;
 
-public partial class SponsorsViewModel : ObservableObject
+public partial class SponsorsViewModel : ObservableValidator
 {
     private readonly AppDbContext _db;
 
@@ -48,8 +51,10 @@ public partial class SponsorsViewModel : ObservableObject
     [ObservableProperty]
     private string? _editAddress;
     [ObservableProperty]
+    [CustomValidation(typeof(SponsorsViewModel), nameof(ValidatePhone))]
     private string? _editPhone;
     [ObservableProperty]
+    [CustomValidation(typeof(SponsorsViewModel), nameof(ValidateEmail))]
     private string? _editEmail;
     [ObservableProperty]
     private string? _editNotes;
@@ -225,67 +230,22 @@ public partial class SponsorsViewModel : ObservableObject
     private async Task SaveAsync()
     {
         EditErrorMessage = null;
+
+        // Name is required
         if (string.IsNullOrWhiteSpace(EditName))
         {
             EditErrorMessage = "Name is required.";
             return;
         }
 
-        // Validate phone number (optional, but if provided must be valid)
-        if (!string.IsNullOrWhiteSpace(EditPhone))
+        // Run all property-level validations (phone, email custom validators)
+        ValidateAllProperties();
+        if (HasErrors)
         {
-            var phone = EditPhone.Trim();
-            var digitCount = phone.Count(char.IsDigit);
-            if (digitCount < 7)
-            {
-                EditErrorMessage = "Phone number must contain at least 7 digits.";
-                return;
-            }
-            // Only allow + (at start), digits, spaces, dashes, parentheses, dots
-            if (!Regex.IsMatch(phone, @"^\+?[\d\s\-\(\)\.]+$"))
-            {
-                EditErrorMessage = "Phone number contains invalid characters.";
-                return;
-            }
-            // Must start with + or digit
-            if (!char.IsDigit(phone[0]) && phone[0] != '+')
-            {
-                EditErrorMessage = "Phone number must start with a digit or +.";
-                return;
-            }
-            // Must end with a digit
-            if (!char.IsDigit(phone[^1]))
-            {
-                EditErrorMessage = "Phone number must end with a digit.";
-                return;
-            }
-        }
-
-        // Validate email address (optional, but if provided must be valid)
-        if (!string.IsNullOrWhiteSpace(EditEmail))
-        {
-            var email = EditEmail.Trim();
-            // Must not contain spaces
-            if (email.Contains(' '))
-            {
-                EditErrorMessage = "Email address must not contain spaces.";
-                return;
-            }
-            // Must have exactly one @
-            var atIndex = email.IndexOf('@');
-            if (atIndex <= 0 || email.Count(c => c == '@') != 1)
-            {
-                EditErrorMessage = "Email address must contain exactly one '@' with text before it.";
-                return;
-            }
-            // Must have a dot after @ with at least 2 chars for TLD
-            var afterAt = email[(atIndex + 1)..];
-            var lastDot = afterAt.LastIndexOf('.');
-            if (lastDot <= 0 || lastDot >= afterAt.Length - 2)
-            {
-                EditErrorMessage = "Email address must have a valid domain (e.g. example.com).";
-                return;
-            }
+            EditErrorMessage = string.Join("\n",
+                GetErrors("EditPhone").Cast<ValidationResult>().Select(e => e.ErrorMessage)
+                .Concat(GetErrors("EditEmail").Cast<ValidationResult>().Select(e => e.ErrorMessage)));
+            return;
         }
 
         if (SelectedSponsor == null)
@@ -372,6 +332,58 @@ public partial class SponsorsViewModel : ObservableObject
     {
         IsEditing = false;
         EditErrorMessage = null;
+    }
+
+    // --- Custom validation methods (called by [CustomValidation] attributes) ---
+
+    /// <summary>
+    /// Validates the phone number in real-time as the user types.
+    /// </summary>
+    public static ValidationResult ValidatePhone(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return ValidationResult.Success!;
+
+        var phone = value.Trim();
+        var digitCount = phone.Count(char.IsDigit);
+        if (digitCount < 7)
+            return new ValidationResult("Phone number must contain at least 7 digits.");
+
+        if (!Regex.IsMatch(phone, @"^\+?[\d\s\-\(\)\.]+$"))
+            return new ValidationResult("Phone number contains invalid characters.");
+
+        if (!char.IsDigit(phone[0]) && phone[0] != '+')
+            return new ValidationResult("Phone number must start with a digit or +.");
+
+        if (!char.IsDigit(phone[^1]))
+            return new ValidationResult("Phone number must end with a digit.");
+
+        return ValidationResult.Success!;
+    }
+
+    /// <summary>
+    /// Validates the email address in real-time as the user types.
+    /// </summary>
+    public static ValidationResult ValidateEmail(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return ValidationResult.Success!;
+
+        var email = value.Trim();
+
+        if (email.Contains(' '))
+            return new ValidationResult("Email address must not contain spaces.");
+
+        var atIndex = email.IndexOf('@');
+        if (atIndex <= 0 || email.Count(c => c == '@') != 1)
+            return new ValidationResult("Email address must contain exactly one '@' with text before it.");
+
+        var afterAt = email[(atIndex + 1)..];
+        var lastDot = afterAt.LastIndexOf('.');
+        if (lastDot <= 0 || lastDot >= afterAt.Length - 2)
+            return new ValidationResult("Email address must have a valid domain (e.g. example.com).");
+
+        return ValidationResult.Success!;
     }
 }
 

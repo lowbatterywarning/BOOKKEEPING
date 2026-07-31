@@ -11,6 +11,28 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
 
+        <!-- Validation error template: red border + tooltip on invalid fields -->
+        <ControlTemplate x:Key="ValidationErrorTemplate">
+            <StackPanel>
+                <Border BorderBrush="#e74c3c" BorderThickness="2" CornerRadius="3">
+                    <AdornedElementPlaceholder/>
+                </Border>
+            </StackPanel>
+        </ControlTemplate>
+
+        <!-- Style for validated TextBoxes -->
+        <Style x:Key="ValidatedTextBox" TargetType="TextBox">
+            <Setter Property="Validation.ErrorTemplate" Value="{StaticResource ValidationErrorTemplate}"/>
+            <Style.Triggers>
+                <Trigger Property="Validation.HasError" Value="True">
+                    <Setter Property="ToolTip"
+                            Value="{Binding RelativeSource={RelativeSource Self},
+                                    Path=(Validation.Errors)/ErrorContent}"/>
+                    <Setter Property="Background" Value="#fff5f5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Grey out inactive sponsor rows -->
         <Style x:Key="InactiveRowStyle" TargetType="ListViewItem">
             <Style.Triggers>
@@ -93,11 +115,13 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1" Margin="0,0,8,0">
                         <TextBlock Text="Phone" FontWeight="SemiBold" Margin="0,0,0,2"/>
-                        <TextBox Text="{Binding EditPhone, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Text="{Binding EditPhone, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                 Style="{StaticResource ValidatedTextBox}"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="Email" FontWeight="SemiBold" Margin="0,0,0,2"/>
-                        <TextBox Text="{Binding EditEmail, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Text="{Binding EditEmail, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}"
+                                 Style="{StaticResource ValidatedTextBox}"/>
                     </StackPanel>
                 </Grid>
                 <Grid Margin="0,8,0,0">
