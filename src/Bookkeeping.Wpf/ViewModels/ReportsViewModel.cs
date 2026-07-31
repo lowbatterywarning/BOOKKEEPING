@@ -262,13 +262,16 @@ public partial class ReportsViewModel : ObservableObject
 
     private void BuildProgramChart(List<Services.ProgramReportRow> data)
     {
+        if (data.Count == 0) return;
         var model = new PlotModel { Title = "Program Income vs Expenses" };
         model.Legends.Add(new Legend { LegendPosition = LegendPosition.BottomCenter });
         var incomeSeries = new BarSeries { Title = "Income", FillColor = OxyColor.FromRgb(0x27, 0xae, 0x60) };
         var expenseSeries = new BarSeries { Title = "Expenses", FillColor = OxyColor.FromRgb(0xc0, 0x39, 0x2b) };
-        var catAxis = new CategoryAxis { Position = AxisPosition.Left };
+        var catAxis = new CategoryAxis { Position = AxisPosition.Bottom };
+        var valueAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Amount ($)" };
         foreach (var p in data) catAxis.Labels.Add(p.Program);
         model.Axes.Add(catAxis);
+        model.Axes.Add(valueAxis);
         foreach (var p in data) { incomeSeries.Items.Add(new BarItem((double)p.Income)); expenseSeries.Items.Add(new BarItem((double)p.Expenses)); }
         model.Series.Add(incomeSeries); model.Series.Add(expenseSeries);
         ChartModel = model;
@@ -300,16 +303,18 @@ public partial class ReportsViewModel : ObservableObject
 
     private void BuildFundChart(List<Services.FundReportRow> data)
     {
+        if (data.Count == 0) return;
         var model = new PlotModel { Title = "Fund Balances" };
         var barSeries = new BarSeries { Title = "Net Balance" };
-        var catAxis = new CategoryAxis { Position = AxisPosition.Left };
+        var catAxis = new CategoryAxis { Position = AxisPosition.Bottom };
+        var valueAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Amount ($)" };
         foreach (var f in data)
         {
             catAxis.Labels.Add(f.FundName);
             barSeries.Items.Add(new BarItem((double)f.NetBalance));
             barSeries.Items[^1].Color = f.IsRestricted ? OxyColor.FromRgb(0xe7, 0x4c, 0x3c) : OxyColor.FromRgb(0x27, 0xae, 0x60);
         }
-        model.Axes.Add(catAxis); model.Series.Add(barSeries);
+        model.Axes.Add(catAxis); model.Axes.Add(valueAxis); model.Series.Add(barSeries);
         ChartModel = model;
     }
 

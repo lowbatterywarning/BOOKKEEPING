@@ -175,13 +175,14 @@ public partial class IncomeViewModel : ObservableObject
     private async Task DeleteDonationAsync(Donation? donation)
     {
         if (donation == null) return;
+        // Remove the donation first — it holds the FK to JournalEntry
+        _db.Donations.Remove(donation);
         var entry = await _db.JournalEntries.Include(j => j.Lines).FirstOrDefaultAsync(j => j.Id == donation.JournalEntryId);
         if (entry != null)
         {
             _db.JournalEntryLines.RemoveRange(entry.Lines);
             _db.JournalEntries.Remove(entry);
         }
-        _db.Donations.Remove(donation);
         _audit.LogDelete(1, "Donation", donation.Id, $"{donation.Amount:C}");
         await _db.SaveChangesAsync();
         await LoadAsync();

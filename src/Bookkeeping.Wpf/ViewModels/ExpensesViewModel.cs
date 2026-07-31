@@ -199,12 +199,8 @@ public partial class ExpensesViewModel : ObservableObject
     private async Task DeleteExpenseAsync(Expense? expense)
     {
         if (expense == null) return;
-        var entry = await _db.JournalEntries.Include(j => j.Lines).FirstOrDefaultAsync(j => j.Id == expense.JournalEntryId);
-        if (entry != null)
-        {
-            _db.JournalEntryLines.RemoveRange(entry.Lines);
-            _db.JournalEntries.Remove(entry);
-        }
+        // Remove the expense first — it holds the FK to JournalEntry
+        _db.Expenses.Remove(expense);
 
         if (!string.IsNullOrEmpty(expense.ReceiptAttachmentPath))
         {
@@ -212,7 +208,13 @@ public partial class ExpensesViewModel : ObservableObject
             if (File.Exists(fullPath)) File.Delete(fullPath);
         }
 
-        _db.Expenses.Remove(expense);
+        var entry = await _db.JournalEntries.Include(j => j.Lines).FirstOrDefaultAsync(j => j.Id == expense.JournalEntryId);
+        if (entry != null)
+        {
+            _db.JournalEntryLines.RemoveRange(entry.Lines);
+            _db.JournalEntries.Remove(entry);
+        }
+
         _audit.LogDelete(1, "Expense", expense.Id, $"{expense.Amount:C} to {expense.VendorName}");
         await _db.SaveChangesAsync();
         await LoadAsync();
