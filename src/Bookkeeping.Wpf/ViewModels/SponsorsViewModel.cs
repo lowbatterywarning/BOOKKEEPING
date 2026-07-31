@@ -5,6 +5,7 @@ using Bookkeeping.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Text.RegularExpressions;
 
 namespace Bookkeeping.Wpf.ViewModels;
 
@@ -75,19 +76,27 @@ public partial class SponsorsViewModel : ObservableObject
 
         var query = _db.Sponsors.AsQueryable();
 
-        // Quick search (searches name, email, phone)
-        if (!string.IsNullOrWhiteSpace(SearchText))
-            query = query.Where(s => s.Name.Contains(SearchText) || (s.Email != null && s.Email.Contains(SearchText)) || (s.Phone != null && s.Phone.Contains(SearchText)));
+        var searchLower = SearchText?.ToLowerInvariant();
+        var filterNameLower = FilterName?.ToLowerInvariant();
+        var filterAddressLower = FilterAddress?.ToLowerInvariant();
+        var filterPhoneLower = FilterPhone?.ToLowerInvariant();
+        var filterEmailLower = FilterEmail?.ToLowerInvariant();
 
-        // Detailed filters
+        // Quick search (searches name, email, phone) - case insensitive
+        if (!string.IsNullOrWhiteSpace(SearchText))
+            query = query.Where(s => s.Name.ToLower().Contains(searchLower!)
+                || (s.Email != null && s.Email.ToLower().Contains(searchLower!))
+                || (s.Phone != null && s.Phone.ToLower().Contains(searchLower!)));
+
+        // Detailed filters - case insensitive
         if (!string.IsNullOrWhiteSpace(FilterName))
-            query = query.Where(s => s.Name.Contains(FilterName));
+            query = query.Where(s => s.Name.ToLower().Contains(filterNameLower!));
         if (!string.IsNullOrWhiteSpace(FilterAddress))
-            query = query.Where(s => s.Address != null && s.Address.Contains(FilterAddress));
+            query = query.Where(s => s.Address != null && s.Address.ToLower().Contains(filterAddressLower!));
         if (!string.IsNullOrWhiteSpace(FilterPhone))
-            query = query.Where(s => s.Phone != null && s.Phone.Contains(FilterPhone));
+            query = query.Where(s => s.Phone != null && s.Phone.ToLower().Contains(filterPhoneLower!));
         if (!string.IsNullOrWhiteSpace(FilterEmail))
-            query = query.Where(s => s.Email != null && s.Email.Contains(FilterEmail));
+            query = query.Where(s => s.Email != null && s.Email.ToLower().Contains(filterEmailLower!));
         if (!ShowInactive)
             query = query.Where(s => s.IsActive);
 
@@ -220,6 +229,63 @@ public partial class SponsorsViewModel : ObservableObject
         {
             EditErrorMessage = "Name is required.";
             return;
+        }
+
+        // Validate phone number (optional, but if provided must be valid)
+        if (!string.IsNullOrWhiteSpace(EditPhone))
+        {
+            var phone = EditPhone.Trim();
+            var digitCount = phone.Count(char.IsDigit);
+            if (digitCount < 7)
+            {
+                EditErrorMessage = "Phone number must contain at least 7 digits.";
+                return;
+            }
+            // Only allow + (at start), digits, spaces, dashes, parentheses, dots
+            if (!Regex.IsMatch(phone, @"^\+?[\d\s\-\(\)\.]+$"))
+            {
+                EditErrorMessage = "Phone number contains invalid characters.";
+                return;
+            }
+            // Must start with + or digit
+            if (!char.IsDigit(phone[0]) && phone[0] != '+')
+            {
+                EditErrorMessage = "Phone number must start with a digit or +.";
+                return;
+            }
+            // Must end with a digit
+            if (!char.IsDigit(phone[^1]))
+            {
+                EditErrorMessage = "Phone number must end with a digit.";
+                return;
+            }
+        }
+
+        // Validate email address (optional, but if provided must be valid)
+        if (!string.IsNullOrWhiteSpace(EditEmail))
+        {
+            var email = EditEmail.Trim();
+            // Must not contain spaces
+            if (email.Contains(' '))
+            {
+                EditErrorMessage = "Email address must not contain spaces.";
+                return;
+            }
+            // Must have exactly one @
+            var atIndex = email.IndexOf('@');
+            if (atIndex <= 0 || email.Count(c => c == '@') != 1)
+            {
+                EditErrorMessage = "Email address must contain exactly one '@' with text before it.";
+                return;
+            }
+            // Must have a dot after @ with at least 2 chars for TLD
+            var afterAt = email[(atIndex + 1)..];
+            var lastDot = afterAt.LastIndexOf('.');
+            if (lastDot <= 0 || lastDot >= afterAt.Length - 2)
+            {
+                EditErrorMessage = "Email address must have a valid domain (e.g. example.com).";
+                return;
+            }
         }
 
         if (SelectedSponsor == null)
