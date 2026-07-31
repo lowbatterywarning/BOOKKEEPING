@@ -126,7 +126,6 @@ public partial class ReportsViewModel : ObservableObject
                     IncomeStatement = await _reportService.GetIncomeStatementAsync(SelectedYear);
                     TotalAmount = IncomeStatement.NetIncome;
                     RowCount = IncomeStatement.RevenueByCategory.Count + IncomeStatement.ExpensesByCategory.Count;
-                    BuildIncomeStatementChart(IncomeStatement);
                     break;
             }
             StatusMessage = $"Report ready — {RowCount} rows, Total: {TotalAmount:C}";
@@ -267,8 +266,9 @@ public partial class ReportsViewModel : ObservableObject
         model.Legends.Add(new Legend { LegendPosition = LegendPosition.BottomCenter });
         var incomeSeries = new BarSeries { Title = "Income", FillColor = OxyColor.FromRgb(0x27, 0xae, 0x60) };
         var expenseSeries = new BarSeries { Title = "Expenses", FillColor = OxyColor.FromRgb(0xc0, 0x39, 0x2b) };
-        var catAxis = new CategoryAxis { Position = AxisPosition.Bottom };
-        var valueAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Amount ($)" };
+        // OxyPlot 2.x BarSeries requires CategoryAxis on the Y-axis (Left position)
+        var catAxis = new CategoryAxis { Position = AxisPosition.Left };
+        var valueAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Amount ($)" };
         foreach (var p in data) catAxis.Labels.Add(p.Program);
         model.Axes.Add(catAxis);
         model.Axes.Add(valueAxis);
@@ -306,8 +306,9 @@ public partial class ReportsViewModel : ObservableObject
         if (data.Count == 0) return;
         var model = new PlotModel { Title = "Fund Balances" };
         var barSeries = new BarSeries { Title = "Net Balance" };
-        var catAxis = new CategoryAxis { Position = AxisPosition.Bottom };
-        var valueAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Amount ($)" };
+        // OxyPlot 2.x BarSeries requires CategoryAxis on the Y-axis (Left position)
+        var catAxis = new CategoryAxis { Position = AxisPosition.Left };
+        var valueAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Amount ($)" };
         foreach (var f in data)
         {
             catAxis.Labels.Add(f.FundName);
@@ -318,29 +319,4 @@ public partial class ReportsViewModel : ObservableObject
         ChartModel = model;
     }
 
-    private void BuildIncomeStatementChart(Services.IncomeStatementData data)
-    {
-        var model = new PlotModel { Title = $"Statement of Activities — {data.Year}" };
-        model.Legends.Add(new Legend { LegendPosition = LegendPosition.BottomCenter });
-
-        var revSeries = new BarSeries { Title = "Revenue", FillColor = OxyColor.FromRgb(0x27, 0xae, 0x60) };
-        var expSeries = new BarSeries { Title = "Expenses", FillColor = OxyColor.FromRgb(0xc0, 0x39, 0x2b) };
-        var netSeries = new LineSeries { Title = "Net Income", Color = OxyColor.FromRgb(0x29, 0x80, 0xb9), StrokeThickness = 2, MarkerType = MarkerType.Circle };
-
-        var catAxis = new CategoryAxis { Position = AxisPosition.Bottom };
-        foreach (var m in data.MonthlyBreakdown)
-        {
-            catAxis.Labels.Add(m.Month[..3]);
-            revSeries.Items.Add(new BarItem((double)m.Revenue));
-            expSeries.Items.Add(new BarItem((double)m.Expenses));
-            netSeries.Points.Add(new DataPoint(catAxis.Labels.Count - 1, (double)m.Net));
-        }
-
-        model.Axes.Add(catAxis);
-        model.Axes.Add(new LinearAxis { Position = AxisPosition.Left, Title = "Amount ($)" });
-        model.Series.Add(revSeries);
-        model.Series.Add(expSeries);
-        model.Series.Add(netSeries);
-        ChartModel = model;
-    }
 }
