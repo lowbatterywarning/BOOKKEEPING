@@ -89,7 +89,6 @@ public class JournalEngine : IJournalEngine
 
     /// <summary>
     /// Record an expense: Debit the expense account, Credit Cash/Bank.
-    /// Validates sufficient balance before proceeding.
     /// Caller must call SaveChangesAsync to persist.
     /// </summary>
     public async Task<JournalEntry> RecordExpenseAsync(Expense expense)
@@ -99,12 +98,6 @@ public class JournalEngine : IJournalEngine
 
         // Find the asset account (Cash or Bank)
         var assetAccount = await GetAssetAccountAsync(expense.PaymentMethod);
-
-        // Validate sufficient balance
-        var assetBalance = await GetAccountBalanceInternalAsync(assetAccount);
-        if (assetBalance < expense.Amount)
-            throw new InvalidOperationException(
-                $"Insufficient {assetAccount.Name} balance. Available: {assetBalance:C}, Required: {expense.Amount:C}.");
 
         // Find the expense account for this expense category
         var expenseAccount = await GetOrCreateExpenseAccountAsync(expense.ExpenseCategoryId);
@@ -172,22 +165,12 @@ public class JournalEngine : IJournalEngine
             debitAccount = bankAccount;
             creditAccount = cashAccount;
             directionDesc = "Cash → Bank";
-
-            var cashBalance = await GetAccountBalanceInternalAsync(cashAccount);
-            if (cashBalance < transfer.Amount)
-                throw new InvalidOperationException(
-                    $"Insufficient Cash balance. Available: {cashBalance:C}, Required: {transfer.Amount:C}.");
         }
         else if (transfer.Direction == TransferDirection.BankToCash)
         {
             debitAccount = cashAccount;
             creditAccount = bankAccount;
             directionDesc = "Bank → Cash";
-
-            var bankBalance = await GetAccountBalanceInternalAsync(bankAccount);
-            if (bankBalance < transfer.Amount)
-                throw new InvalidOperationException(
-                    $"Insufficient Bank balance. Available: {bankBalance:C}, Required: {transfer.Amount:C}.");
         }
         else
         {

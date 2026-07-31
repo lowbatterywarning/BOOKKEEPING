@@ -276,9 +276,9 @@ public class JournalEngineTests : IDisposable
     // ==================== Expense Tests ====================
 
     [Fact]
-    public async Task RecordExpense_WithoutBalance_ThrowsException()
+    public async Task RecordExpense_WithoutBalance_Succeeds()
     {
-        // No donations recorded yet, so cash balance is $0
+        // No donations recorded yet, so cash balance is $0 — transaction should still proceed
         var expense = new Expense
         {
             Date = DateTime.UtcNow,
@@ -289,7 +289,15 @@ public class JournalEngineTests : IDisposable
             CreatedByUserId = 1
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _engine.RecordExpenseAsync(expense));
+        var entry = await _engine.RecordExpenseAsync(expense);
+        await SaveAsync();
+
+        Assert.True(_engine.IsBalanced(entry));
+        Assert.Equal(2, entry.Lines.Count);
+
+        // Cash balance should go negative
+        var cashBalance = await _engine.GetAccountBalanceAsync(100);
+        Assert.Equal(-200m, cashBalance);
     }
 
     [Fact]
@@ -332,7 +340,7 @@ public class JournalEngineTests : IDisposable
     // ==================== Transfer Tests ====================
 
     [Fact]
-    public async Task RecordTransfer_WithoutBalance_ThrowsException()
+    public async Task RecordTransfer_WithoutBalance_Succeeds()
     {
         var transfer = new CashBankTransfer
         {
@@ -342,7 +350,14 @@ public class JournalEngineTests : IDisposable
             CreatedByUserId = 1
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _engine.RecordTransferAsync(transfer));
+        var entry = await _engine.RecordTransferAsync(transfer);
+        await SaveAsync();
+
+        Assert.True(_engine.IsBalanced(entry));
+
+        // Cash should go negative (no funds added first)
+        var cashBalance = await _engine.GetAccountBalanceAsync(100);
+        Assert.Equal(-300m, cashBalance);
     }
 
     [Fact]
@@ -568,7 +583,7 @@ public class JournalEngineTests : IDisposable
     // ==================== Engine Validation Tests ====================
 
     [Fact]
-    public async Task RecordExpense_ExceedingBalance_ThrowsException()
+    public async Task RecordExpense_ExceedingBalance_Succeeds()
     {
         // Add $100 to cash
         await _engine.RecordDonationAsync(new Donation
@@ -578,18 +593,24 @@ public class JournalEngineTests : IDisposable
         });
         await SaveAsync();
 
-        // Try to spend $200 - should fail
+        // Spend $200 — should succeed even though balance goes negative
         var expense = new Expense
         {
             Date = DateTime.UtcNow, VendorName = "Vendor", PaymentMethod = PaymentMethod.Cash,
             ExpenseCategoryId = 30, Amount = 200m, CreatedByUserId = 1
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _engine.RecordExpenseAsync(expense));
+        var entry = await _engine.RecordExpenseAsync(expense);
+        await SaveAsync();
+
+        Assert.True(_engine.IsBalanced(entry));
+
+        var cashBalance = await _engine.GetAccountBalanceAsync(100);
+        Assert.Equal(-100m, cashBalance);
     }
 
     [Fact]
-    public async Task RecordTransfer_ExceedingBalance_ThrowsException()
+    public async Task RecordTransfer_ExceedingBalance_Succeeds()
     {
         // Add $100 to cash
         await _engine.RecordDonationAsync(new Donation
@@ -599,13 +620,19 @@ public class JournalEngineTests : IDisposable
         });
         await SaveAsync();
 
-        // Try to transfer $200 from cash to bank - should fail
+        // Transfer $200 from cash to bank — should succeed even though balance goes negative
         var transfer = new CashBankTransfer
         {
             Date = DateTime.UtcNow, Direction = TransferDirection.CashToBank, Amount = 200m, CreatedByUserId = 1
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _engine.RecordTransferAsync(transfer));
+        var entry = await _engine.RecordTransferAsync(transfer);
+        await SaveAsync();
+
+        Assert.True(_engine.IsBalanced(entry));
+
+        var cashBalance = await _engine.GetAccountBalanceAsync(100);
+        Assert.Equal(-100m, cashBalance);
     }
 
     [Fact]
