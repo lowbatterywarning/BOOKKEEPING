@@ -68,7 +68,7 @@ public partial class CashBankViewModel : ObservableObject
             .Include(l => l.JournalEntry).ThenInclude(j => j.Expense)
             .Include(l => l.JournalEntry).ThenInclude(j => j.CashBankTransfer)
             .Where(l => l.AccountId == cashAccount.Id && l.JournalEntry.Date >= yearStart)
-            .OrderBy(l => l.JournalEntry.Date)
+            .OrderBy(l => l.JournalEntry.Date).ThenBy(l => l.JournalEntry.Id)
             .ToListAsync();
 
         // Load current year's journal entry lines for bank
@@ -77,7 +77,7 @@ public partial class CashBankViewModel : ObservableObject
             .Include(l => l.JournalEntry).ThenInclude(j => j.Expense)
             .Include(l => l.JournalEntry).ThenInclude(j => j.CashBankTransfer)
             .Where(l => l.AccountId == bankAccount.Id && l.JournalEntry.Date >= yearStart)
-            .OrderBy(l => l.JournalEntry.Date)
+            .OrderBy(l => l.JournalEntry.Date).ThenBy(l => l.JournalEntry.Id)
             .ToListAsync();
 
         // Process cash

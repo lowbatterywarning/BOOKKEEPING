@@ -53,8 +53,6 @@ public class JournalEngineTests : IDisposable
         // Clear existing seed data first to avoid unique constraint collisions
         // Order matters: remove dependents before principals to respect FK constraints
         _db.AppSettings.RemoveRange(_db.AppSettings);
-        _db.ReconciledItems.RemoveRange(_db.ReconciledItems);
-        _db.BankReconciliations.RemoveRange(_db.BankReconciliations);
         _db.Budgets.RemoveRange(_db.Budgets);
         _db.CashBankTransfers.RemoveRange(_db.CashBankTransfers);
         _db.Donations.RemoveRange(_db.Donations);

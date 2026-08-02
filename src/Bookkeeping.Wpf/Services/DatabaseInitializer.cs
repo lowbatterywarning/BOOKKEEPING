@@ -46,12 +46,18 @@ public class DatabaseInitializer
         var conn = _db.Database.GetDbConnection();
         await conn.OpenAsync();
         bool hasMigrationHistory;
-        using (var cmd = conn.CreateCommand())
+        try
         {
-            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory'";
-            hasMigrationHistory = (await cmd.ExecuteScalarAsync()) != null;
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory'";
+                hasMigrationHistory = (await cmd.ExecuteScalarAsync()) != null;
+            }
         }
-        await conn.CloseAsync();
+        finally
+        {
+            await conn.CloseAsync();
+        }
 
         if (!hasMigrationHistory)
         {

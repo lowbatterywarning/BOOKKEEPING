@@ -5,9 +5,8 @@ using Bookkeeping.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using OxyPlot;
-using OxyPlot.Series;
 using OxyPlot.Axes;
-using OxyPlot.Legends;
+using OxyPlot.Series;
 
 namespace Bookkeeping.Wpf.ViewModels;
 
@@ -75,7 +74,6 @@ public partial class ReportsViewModel : ObservableObject
     {
         IsLoading = true;
         StatusMessage = "Generating report...";
-        ChartModel = null;
 
         try
         {
@@ -85,34 +83,36 @@ public partial class ReportsViewModel : ObservableObject
                     var donations = await _reportService.GetDonationReportAsync(DateFrom, DateTo, FilterSponsor?.Id, FilterDonationCategory?.Id, FilterPaymentMethod);
                     DonationReport = new ObservableCollection<Services.DonationReportRow>(donations);
                     TotalAmount = donations.Sum(d => d.Amount); RowCount = donations.Count;
+                    ChartModel = BuildDonationChart(donations);
                     break;
                 case "Expense":
                     var expenses = await _reportService.GetExpenseReportAsync(DateFrom, DateTo, FilterExpenseCategory?.Id, FilterProgram?.Id, FilterPaymentMethod);
                     ExpenseReport = new ObservableCollection<Services.ExpenseReportRow>(expenses);
                     TotalAmount = expenses.Sum(e => e.Amount); RowCount = expenses.Count;
+                    ChartModel = BuildExpenseChart(expenses);
                     break;
                 case "Program":
                     var programs = await _reportService.GetProgramReportAsync(DateFrom, DateTo);
                     ProgramReport = new ObservableCollection<Services.ProgramReportRow>(programs);
                     TotalAmount = programs.Sum(p => p.Balance); RowCount = programs.Count;
-                    BuildProgramChart(programs);
+                    ChartModel = BuildProgramChart(programs);
                     break;
                 case "Monthly":
                     var monthly = await _reportService.GetMonthlyReportAsync(SelectedYear);
                     MonthlyReport = new ObservableCollection<Services.MonthlyReportRow>(monthly);
                     TotalAmount = monthly.Sum(m => m.Net); RowCount = 12;
-                    BuildMonthlyChart(monthly);
+                    ChartModel = BuildMonthlyChart(monthly);
                     break;
                 case "Annual":
                     AnnualReport = await _reportService.GetAnnualReportAsync(SelectedYear);
                     TotalAmount = AnnualReport.Net;
-                    BuildAnnualChart(AnnualReport);
+                    ChartModel = BuildAnnualChart(AnnualReport);
                     break;
                 case "Fund":
                     var funds = await _reportService.GetFundReportAsync();
                     FundReport = new ObservableCollection<Services.FundReportRow>(funds);
                     TotalAmount = funds.Sum(f => f.NetBalance); RowCount = funds.Count;
-                    BuildFundChart(funds);
+                    ChartModel = BuildFundChart(funds);
                     break;
                 case "Sponsor":
                     if (FilterSponsor != null)
@@ -120,17 +120,20 @@ public partial class ReportsViewModel : ObservableObject
                         var sponsorRows = await _reportService.GetSponsorReportAsync(FilterSponsor.Id);
                         SponsorReport = new ObservableCollection<Services.SponsorReportRow>(sponsorRows);
                         TotalAmount = sponsorRows.Sum(s => s.Amount); RowCount = sponsorRows.Count;
+                        ChartModel = BuildSponsorChart(sponsorRows);
                     }
+                    else { ChartModel = null; }
                     break;
                 case "Statement of Activities":
                     IncomeStatement = await _reportService.GetIncomeStatementAsync(SelectedYear);
                     TotalAmount = IncomeStatement.NetIncome;
                     RowCount = IncomeStatement.RevenueByCategory.Count + IncomeStatement.ExpensesByCategory.Count;
+                    ChartModel = BuildStatementChart(IncomeStatement);
                     break;
             }
             StatusMessage = $"Report ready — {RowCount} rows, Total: {TotalAmount:C}";
         }
-        catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
+        catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; ChartModel = null; }
         finally { IsLoading = false; }
     }
 
@@ -245,6 +248,302 @@ public partial class ReportsViewModel : ObservableObject
         catch (Exception ex) { StatusMessage = $"PDF export failed: {ex.Message}"; }
     }
 
+    // ── Chart builders ──────────────────────────────────────────
+
+    private static PlotModel BuildDonationChart(List<Services.DonationReportRow> rows)
+    {
+        var model = new PlotModel { Title = "Donations by Category" };
+        var groups = rows.GroupBy(r => r.Category)
+            .Select(g => new { Category = g.Key, Total = g.Sum(r => r.Amount) })
+            .OrderBy(x => x.Total).ToList();
+
+        model.Axes.Add(new CategoryAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "Category",
+            Key = "CategoryAxis"
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Amount ($)",
+            Key = "ValueAxis"
+        });
+
+        var series = new BarSeries
+        {
+            Title = "Donations",
+            FillColor = OxyColor.FromRgb(0x27, 0xAE, 0x60),
+            XAxisKey = "ValueAxis",
+            YAxisKey = "CategoryAxis"
+        };
+        foreach (var g in groups)
+            series.Items.Add(new BarItem { Value = (double)g.Total });
+
+        model.Series.Add(series);
+        return model;
+    }
+
+    private static PlotModel BuildExpenseChart(List<Services.ExpenseReportRow> rows)
+    {
+        var model = new PlotModel { Title = "Expenses by Category" };
+        var groups = rows.GroupBy(r => r.Category)
+            .Select(g => new { Category = g.Key, Total = g.Sum(r => r.Amount) })
+            .OrderBy(x => x.Total).ToList();
+
+        model.Axes.Add(new CategoryAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "Category",
+            Key = "CategoryAxis"
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Amount ($)",
+            Key = "ValueAxis"
+        });
+
+        var series = new BarSeries
+        {
+            Title = "Expenses",
+            FillColor = OxyColor.FromRgb(0xC0, 0x39, 0x2B),
+            XAxisKey = "ValueAxis",
+            YAxisKey = "CategoryAxis"
+        };
+        foreach (var g in groups)
+            series.Items.Add(new BarItem { Value = (double)g.Total });
+
+        model.Series.Add(series);
+        return model;
+    }
+
+    private static PlotModel BuildProgramChart(List<Services.ProgramReportRow> rows)
+    {
+        var model = new PlotModel { Title = "Program Income vs Expenses" };
+        var programs = rows.Where(r => r.Income > 0 || r.Expenses > 0).ToList();
+        if (programs.Count == 0) return model;
+
+        model.Axes.Add(new CategoryAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "Program",
+            Key = "CategoryAxis"
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Amount ($)",
+            Key = "ValueAxis"
+        });
+
+        var incomeSeries = new BarSeries
+        {
+            Title = "Income",
+            FillColor = OxyColor.FromRgb(0x27, 0xAE, 0x60),
+            XAxisKey = "ValueAxis",
+            YAxisKey = "CategoryAxis"
+        };
+        var expenseSeries = new BarSeries
+        {
+            Title = "Expenses",
+            FillColor = OxyColor.FromRgb(0xC0, 0x39, 0x2B),
+            XAxisKey = "ValueAxis",
+            YAxisKey = "CategoryAxis"
+        };
+        for (int i = 0; i < programs.Count; i++)
+        {
+            incomeSeries.Items.Add(new BarItem { Value = (double)programs[i].Income });
+            expenseSeries.Items.Add(new BarItem { Value = (double)programs[i].Expenses });
+        }
+        model.Series.Add(incomeSeries);
+        model.Series.Add(expenseSeries);
+        return model;
+    }
+
+    private static PlotModel BuildMonthlyChart(List<Services.MonthlyReportRow> rows)
+    {
+        var model = new PlotModel { Title = "Monthly Income vs Expenses" };
+        model.Axes.Add(new CategoryAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Month",
+            Key = "MonthAxis"
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "Amount ($)",
+            Key = "ValueAxis"
+        });
+
+        var incomeSeries = new LineSeries
+        {
+            Title = "Income",
+            Color = OxyColor.FromRgb(0x27, 0xAE, 0x60),
+            MarkerType = MarkerType.Circle,
+            XAxisKey = "MonthAxis",
+            YAxisKey = "ValueAxis"
+        };
+        var expenseSeries = new LineSeries
+        {
+            Title = "Expenses",
+            Color = OxyColor.FromRgb(0xC0, 0x39, 0x2B),
+            MarkerType = MarkerType.Circle,
+            XAxisKey = "MonthAxis",
+            YAxisKey = "ValueAxis"
+        };
+        var netSeries = new LineSeries
+        {
+            Title = "Net",
+            Color = OxyColor.FromRgb(0x29, 0x80, 0xB9),
+            MarkerType = MarkerType.Diamond,
+            StrokeThickness = 2,
+            XAxisKey = "MonthAxis",
+            YAxisKey = "ValueAxis"
+        };
+
+        for (int i = 0; i < rows.Count; i++)
+        {
+            incomeSeries.Points.Add(new DataPoint(i, (double)rows[i].Income));
+            expenseSeries.Points.Add(new DataPoint(i, (double)rows[i].Expenses));
+            netSeries.Points.Add(new DataPoint(i, (double)rows[i].Net));
+        }
+        model.Series.Add(incomeSeries);
+        model.Series.Add(expenseSeries);
+        model.Series.Add(netSeries);
+        return model;
+    }
+
+    private static PlotModel BuildAnnualChart(Services.AnnualReportData data)
+    {
+        var model = new PlotModel { Title = $"Annual Summary — {data.Year}" };
+        model.Axes.Add(new CategoryAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "",
+            Key = "CategoryAxis"
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Amount ($)",
+            Key = "ValueAxis"
+        });
+
+        var series = new BarSeries
+        {
+            Title = "Amount",
+            XAxisKey = "ValueAxis",
+            YAxisKey = "CategoryAxis"
+        };
+        series.Items.Add(new BarItem { Value = (double)data.TotalIncome, Color = OxyColor.FromRgb(0x27, 0xAE, 0x60) });
+        series.Items.Add(new BarItem { Value = (double)data.TotalExpenses, Color = OxyColor.FromRgb(0xC0, 0x39, 0x2B) });
+        series.Items.Add(new BarItem { Value = (double)data.Net, Color = OxyColor.FromRgb(0x29, 0x80, 0xB9) });
+        model.Series.Add(series);
+        return model;
+    }
+
+    private static PlotModel BuildFundChart(List<Services.FundReportRow> rows)
+    {
+        var model = new PlotModel { Title = "Fund Net Balances" };
+        var funds = rows.Where(r => r.NetBalance != 0).ToList();
+        if (funds.Count == 0) return model;
+
+        model.Axes.Add(new CategoryAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "Fund",
+            Key = "CategoryAxis"
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Net Balance ($)",
+            Key = "ValueAxis"
+        });
+
+        var series = new BarSeries
+        {
+            Title = "Net Balance",
+            XAxisKey = "ValueAxis",
+            YAxisKey = "CategoryAxis"
+        };
+        for (int i = 0; i < funds.Count; i++)
+        {
+            var val = (double)funds[i].NetBalance;
+            series.Items.Add(new BarItem
+            {
+                Value = Math.Abs(val),
+                Color = val >= 0 ? OxyColor.FromRgb(0x27, 0xAE, 0x60) : OxyColor.FromRgb(0xC0, 0x39, 0x2B)
+            });
+        }
+        model.Series.Add(series);
+        return model;
+    }
+
+    private static PlotModel BuildSponsorChart(List<Services.SponsorReportRow> rows)
+    {
+        var model = new PlotModel { Title = "Sponsor Donations Over Time" };
+        var sorted = rows.OrderBy(r => r.Date).ToList();
+        if (sorted.Count == 0) return model;
+
+        model.Axes.Add(new CategoryAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "Date",
+            Key = "CategoryAxis"
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Amount ($)",
+            Key = "ValueAxis"
+        });
+
+        var series = new BarSeries
+        {
+            Title = "Donation",
+            FillColor = OxyColor.FromRgb(0x27, 0xAE, 0x60),
+            XAxisKey = "ValueAxis",
+            YAxisKey = "CategoryAxis"
+        };
+        for (int i = 0; i < sorted.Count; i++)
+            series.Items.Add(new BarItem { Value = (double)sorted[i].Amount });
+
+        model.Series.Add(series);
+        return model;
+    }
+
+    private static PlotModel BuildStatementChart(Services.IncomeStatementData data)
+    {
+        var model = new PlotModel { Title = "Statement of Activities — Revenue vs Expenses" };
+        model.Axes.Add(new CategoryAxis
+        {
+            Position = AxisPosition.Left,
+            Title = "",
+            Key = "CategoryAxis"
+        });
+        model.Axes.Add(new LinearAxis
+        {
+            Position = AxisPosition.Bottom,
+            Title = "Amount ($)",
+            Key = "ValueAxis"
+        });
+
+        var series = new BarSeries
+        {
+            Title = "Amount",
+            XAxisKey = "ValueAxis",
+            YAxisKey = "CategoryAxis"
+        };
+        series.Items.Add(new BarItem { Value = (double)data.TotalRevenue, Color = OxyColor.FromRgb(0x27, 0xAE, 0x60) });
+        series.Items.Add(new BarItem { Value = (double)data.TotalExpenses, Color = OxyColor.FromRgb(0xC0, 0x39, 0x2B) });
+        series.Items.Add(new BarItem { Value = (double)data.NetIncome, Color = OxyColor.FromRgb(0x29, 0x80, 0xB9) });
+        model.Series.Add(series);
+        return model;
+    }
+
     [RelayCommand] private void ClearFilters()
     {
         DateFrom = new DateTime(DateTime.Now.Year, 1, 1); DateTo = DateTime.Now;
@@ -258,65 +557,4 @@ public partial class ReportsViewModel : ObservableObject
         if (_isLoaded)
             _ = GenerateReportAsync();
     }
-
-    private void BuildProgramChart(List<Services.ProgramReportRow> data)
-    {
-        if (data.Count == 0) return;
-        var model = new PlotModel { Title = "Program Income vs Expenses" };
-        model.Legends.Add(new Legend { LegendPosition = LegendPosition.BottomCenter });
-        var incomeSeries = new BarSeries { Title = "Income", FillColor = OxyColor.FromRgb(0x27, 0xae, 0x60) };
-        var expenseSeries = new BarSeries { Title = "Expenses", FillColor = OxyColor.FromRgb(0xc0, 0x39, 0x2b) };
-        // OxyPlot 2.x BarSeries requires CategoryAxis on the Y-axis (Left position)
-        var catAxis = new CategoryAxis { Position = AxisPosition.Left };
-        var valueAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Amount ($)" };
-        foreach (var p in data) catAxis.Labels.Add(p.Program);
-        model.Axes.Add(catAxis);
-        model.Axes.Add(valueAxis);
-        foreach (var p in data) { incomeSeries.Items.Add(new BarItem((double)p.Income)); expenseSeries.Items.Add(new BarItem((double)p.Expenses)); }
-        model.Series.Add(incomeSeries); model.Series.Add(expenseSeries);
-        ChartModel = model;
-    }
-
-    private void BuildMonthlyChart(List<Services.MonthlyReportRow> data)
-    {
-        var model = new PlotModel { Title = $"Monthly Income & Expenses — {SelectedYear}" };
-        model.Legends.Add(new Legend { LegendPosition = LegendPosition.BottomCenter });
-        var incomeSeries = new LineSeries { Title = "Income", Color = OxyColor.FromRgb(0x27, 0xae, 0x60), StrokeThickness = 2, MarkerType = MarkerType.Circle };
-        var expenseSeries = new LineSeries { Title = "Expenses", Color = OxyColor.FromRgb(0xc0, 0x39, 0x2b), StrokeThickness = 2, MarkerType = MarkerType.Circle };
-        for (int i = 0; i < data.Count; i++) { incomeSeries.Points.Add(new DataPoint(i, (double)data[i].Income)); expenseSeries.Points.Add(new DataPoint(i, (double)data[i].Expenses)); }
-        model.Series.Add(incomeSeries); model.Series.Add(expenseSeries);
-        var xAxis = new CategoryAxis { Position = AxisPosition.Bottom };
-        foreach (var m in data) xAxis.Labels.Add(m.Month[..3]);
-        model.Axes.Add(xAxis); model.Axes.Add(new LinearAxis { Position = AxisPosition.Left, Title = "Amount ($)" });
-        ChartModel = model;
-    }
-
-    private void BuildAnnualChart(Services.AnnualReportData data)
-    {
-        var model = new PlotModel { Title = $"Income by Category — {data.Year}" };
-        var pieSeries = new PieSeries { StrokeThickness = 1, InsideLabelPosition = 0.5 };
-        foreach (var c in data.IncomeByCategory.Take(10))
-            pieSeries.Slices.Add(new PieSlice(c.Category, (double)c.Amount) { IsExploded = false });
-        model.Series.Add(pieSeries);
-        ChartModel = model;
-    }
-
-    private void BuildFundChart(List<Services.FundReportRow> data)
-    {
-        if (data.Count == 0) return;
-        var model = new PlotModel { Title = "Fund Balances" };
-        var barSeries = new BarSeries { Title = "Net Balance" };
-        // OxyPlot 2.x BarSeries requires CategoryAxis on the Y-axis (Left position)
-        var catAxis = new CategoryAxis { Position = AxisPosition.Left };
-        var valueAxis = new LinearAxis { Position = AxisPosition.Bottom, Title = "Amount ($)" };
-        foreach (var f in data)
-        {
-            catAxis.Labels.Add(f.FundName);
-            barSeries.Items.Add(new BarItem((double)f.NetBalance));
-            barSeries.Items[^1].Color = f.IsRestricted ? OxyColor.FromRgb(0xe7, 0x4c, 0x3c) : OxyColor.FromRgb(0x27, 0xae, 0x60);
-        }
-        model.Axes.Add(catAxis); model.Axes.Add(valueAxis); model.Series.Add(barSeries);
-        ChartModel = model;
-    }
-
 }

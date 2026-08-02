@@ -140,9 +140,11 @@ public class IntegrationTests : IDisposable
         });
         await SaveAsync();
 
-        // Verify
-        var cashBal = await engine.GetAccountBalanceAsync(1);
-        var bankBal = await engine.GetAccountBalanceAsync(2);
+        // Verify — look up accounts by code, not hardcoded ID
+        var cashAccount = await _db.Accounts.FirstAsync(a => a.Code == "1000");
+        var bankAccount = await _db.Accounts.FirstAsync(a => a.Code == "1010");
+        var cashBal = await engine.GetAccountBalanceAsync(cashAccount.Id);
+        var bankBal = await engine.GetAccountBalanceAsync(bankAccount.Id);
         var fundBal = await engine.GetFundBalanceAsync(fund.Id);
 
         Assert.Equal(10000m, cashBal);   // 10000 + 3000 - 1000 - 2000

@@ -187,8 +187,22 @@ public partial class BudgetViewModel : ObservableObject
         }
     }
 
-    partial void OnSelectedYearChanged(int value) => _ = RefreshGridAsync();
-    partial void OnBudgetTypeChanged(string value) => _ = RefreshGridAsync();
+    partial void OnSelectedYearChanged(int value)
+    {
+        _ = RefreshGridAsync().ContinueWith(t =>
+        {
+            if (t.IsFaulted && t.Exception is not null)
+                StatusMessage = $"Error: {t.Exception.InnerException?.Message ?? t.Exception.Message}";
+        }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+    partial void OnBudgetTypeChanged(string value)
+    {
+        _ = RefreshGridAsync().ContinueWith(t =>
+        {
+            if (t.IsFaulted && t.Exception is not null)
+                StatusMessage = $"Error: {t.Exception.InnerException?.Message ?? t.Exception.Message}";
+        }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
 }
 
 public partial class BudgetRow : ObservableObject

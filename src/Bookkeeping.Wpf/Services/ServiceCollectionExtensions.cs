@@ -25,7 +25,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ExportService>();
         services.AddScoped<AuditService>();
         services.AddScoped<BackupService>(_ => new BackupService(dbPath, attachmentsPath));
-        services.AddSingleton<DatabaseInitializer>();
+        services.AddScoped<DatabaseInitializer>();
 
         // ViewModels
         services.AddTransient<ViewModels.DashboardViewModel>();
@@ -37,7 +37,6 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ViewModels.ReportsViewModel>();
         services.AddTransient<ViewModels.SearchViewModel>();
         services.AddTransient<ViewModels.BudgetViewModel>();
-        services.AddTransient<ViewModels.ReconciliationViewModel>();
         services.AddTransient<ViewModels.SettingsViewModel>();
         services.AddTransient<ViewModels.MainViewModel>();
 

@@ -25,8 +25,6 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<Budget> Budgets => Set<Budget>();
-    public DbSet<BankReconciliation> BankReconciliations => Set<BankReconciliation>();
-    public DbSet<ReconciledItem> ReconciledItems => Set<ReconciledItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -196,24 +194,6 @@ public class AppDbContext : DbContext
             e.Property(b => b.Notes).HasMaxLength(500);
             e.HasOne(b => b.ExpenseCategory).WithMany().HasForeignKey(b => b.ExpenseCategoryId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(b => b.Program).WithMany().HasForeignKey(b => b.ProgramId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        // ---- BankReconciliation ----
-        modelBuilder.Entity<BankReconciliation>(e =>
-        {
-            e.HasIndex(r => r.StatementDate);
-            e.Property(r => r.StatementBalance).HasColumnType("decimal(18,2)");
-            e.Property(r => r.LedgerBalance).HasColumnType("decimal(18,2)");
-            e.Property(r => r.Difference).HasColumnType("decimal(18,2)");
-            e.Property(r => r.Notes).HasMaxLength(500);
-            e.HasOne(r => r.CreatedByUser).WithMany().HasForeignKey(r => r.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
-        });
-
-        // ---- ReconciledItem ----
-        modelBuilder.Entity<ReconciledItem>(e =>
-        {
-            e.HasOne(ri => ri.BankReconciliation).WithMany(r => r.ReconciledItems).HasForeignKey(ri => ri.BankReconciliationId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(ri => ri.JournalEntryLine).WithMany().HasForeignKey(ri => ri.JournalEntryLineId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ---- Seed Data ----

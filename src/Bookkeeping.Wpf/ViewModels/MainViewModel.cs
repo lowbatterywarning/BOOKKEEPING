@@ -24,7 +24,6 @@ public partial class MainViewModel : ObservableObject
     public ReportsViewModel Reports { get; }
     public SearchViewModel Search { get; }
     public BudgetViewModel Budget { get; }
-    public ReconciliationViewModel Reconciliation { get; }
     public SettingsViewModel Settings { get; }
 
     [ObservableProperty]
@@ -40,7 +39,6 @@ public partial class MainViewModel : ObservableObject
         ReportsViewModel reports,
         SearchViewModel search,
         BudgetViewModel budget,
-        ReconciliationViewModel reconciliation,
         SettingsViewModel settings)
     {
         Dashboard = dashboard;
@@ -52,7 +50,6 @@ public partial class MainViewModel : ObservableObject
         Reports = reports;
         Search = search;
         Budget = budget;
-        Reconciliation = reconciliation;
         Settings = settings;
 
         // Default to dashboard
@@ -82,9 +79,6 @@ public partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private void NavigateToBudget() => CurrentView = Budget;
-
-    [RelayCommand]
-    private void NavigateToReconciliation() => CurrentView = Reconciliation;
 
     [RelayCommand]
     private void NavigateToSearch() => CurrentView = Search;

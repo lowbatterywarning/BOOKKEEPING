@@ -184,6 +184,7 @@ public partial class ExpensesViewModel : ObservableObject
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
             var msg = ex.Message;
             var inner = ex.InnerException;
             while (inner != null)
@@ -202,11 +203,7 @@ public partial class ExpensesViewModel : ObservableObject
         // Remove the expense first — it holds the FK to JournalEntry
         _db.Expenses.Remove(expense);
 
-        if (!string.IsNullOrEmpty(expense.ReceiptAttachmentPath))
-        {
-            var fullPath = Path.Combine(_attachmentsFolder, expense.ReceiptAttachmentPath);
-            if (File.Exists(fullPath)) File.Delete(fullPath);
-        }
+        var receiptPath = expense.ReceiptAttachmentPath;
 
         var entry = await _db.JournalEntries.Include(j => j.Lines).FirstOrDefaultAsync(j => j.Id == expense.JournalEntryId);
         if (entry != null)
@@ -217,6 +214,14 @@ public partial class ExpensesViewModel : ObservableObject
 
         _audit.LogDelete(1, "Expense", expense.Id, $"{expense.Amount:C} to {expense.VendorName}");
         await _db.SaveChangesAsync();
+
+        // Delete receipt file only AFTER successful DB save
+        if (!string.IsNullOrEmpty(receiptPath))
+        {
+            var fullPath = Path.Combine(_attachmentsFolder, receiptPath);
+            try { if (File.Exists(fullPath)) File.Delete(fullPath); } catch { }
+        }
+
         await LoadAsync();
     }
 

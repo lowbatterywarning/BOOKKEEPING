@@ -103,8 +103,14 @@ public partial class SettingsViewModel : ObservableObject
                         await _backupService.CreateBackupAsync();
                         LastBackupTime = DateTime.Now.ToString("g");
                     }
+                    catch (ObjectDisposedException)
+                    {
+                        // App is shutting down — stop the timer silently
+                        _autoBackupTimer?.Stop();
+                    }
                     catch (Exception ex)
                     {
+                        BackupStatus = $"Backup failed: {ex.Message}";
                         System.Diagnostics.Debug.WriteLine($"Auto-backup failed: {ex.Message}");
                     }
                 },

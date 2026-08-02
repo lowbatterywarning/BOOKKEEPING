@@ -160,6 +160,7 @@ public partial class IncomeViewModel : ObservableObject
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
             var msg = ex.Message;
             var inner = ex.InnerException;
             while (inner != null)

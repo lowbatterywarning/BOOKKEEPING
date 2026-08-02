@@ -35,9 +35,6 @@
         <DataTemplate DataType="{x:Type vm:BudgetViewModel}">
             <views:BudgetView />
         </DataTemplate>
-        <DataTemplate DataType="{x:Type vm:ReconciliationViewModel}">
-            <views:ReconciliationView />
-        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:SearchViewModel}">
             <views:SearchView />
         </DataTemplate>
@@ -83,10 +80,6 @@
                 <Button Content="Budget" Style="{StaticResource NavButton}"
                         Background="#34495e" Foreground="White"
                         Command="{Binding NavigateToBudgetCommand}"/>
-                <Button Content="Reconciliation" Style="{StaticResource NavButton}"
-                        Background="#34495e" Foreground="White"
-                        Command="{Binding NavigateToReconciliationCommand}"/>
-
                 <Button Content="Search" Style="{StaticResource NavButton}"
                         Background="#34495e" Foreground="White"
                         Command="{Binding NavigateToSearchCommand}"/>
