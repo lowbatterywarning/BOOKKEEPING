@@ -21,8 +21,6 @@ public partial class ExpensesViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<Expense> _expenses = new();
     [ObservableProperty]
-    private ObservableCollection<ExpenseCategory> _categories = new();
-    [ObservableProperty]
     private ObservableCollection<OrgProgram> _programs = new();
 
     // Filters
@@ -30,8 +28,6 @@ public partial class ExpensesViewModel : ObservableObject
     private DateTime? _filterDateFrom;
     [ObservableProperty]
     private DateTime? _filterDateTo;
-    [ObservableProperty]
-    private ExpenseCategory? _filterCategory;
     [ObservableProperty]
     private OrgProgram? _filterProgram;
 
@@ -45,8 +41,6 @@ public partial class ExpensesViewModel : ObservableObject
     [ObservableProperty]
     private PaymentMethod _newPaymentMethod = PaymentMethod.Cash;
     [ObservableProperty]
-    private ExpenseCategory? _newCategory;
-    [ObservableProperty]
     private OrgProgram? _newProgram;
     [ObservableProperty]
     private decimal _newAmount;
@@ -56,16 +50,6 @@ public partial class ExpensesViewModel : ObservableObject
     private string? _newReceiptPath;
     [ObservableProperty]
     private string? _errorMessage;
-
-    // Add Category form
-    [ObservableProperty]
-    private bool _isAddingCategory;
-    [ObservableProperty]
-    private string _newCategoryName = string.Empty;
-    [ObservableProperty]
-    private string? _newCategoryDescription;
-    [ObservableProperty]
-    private string? _categoryErrorMessage;
 
     private readonly string _attachmentsFolder;
 
@@ -86,30 +70,25 @@ public partial class ExpensesViewModel : ObservableObject
     {
         _db.ChangeTracker.Clear();
         var query = _db.Expenses
-            .Include(e => e.ExpenseCategory)
             .Include(e => e.Program)
             .AsQueryable();
 
         if (FilterDateFrom.HasValue) query = query.Where(e => e.Date >= FilterDateFrom.Value);
         if (FilterDateTo.HasValue) query = query.Where(e => e.Date <= FilterDateTo.Value);
-        if (FilterCategory != null) query = query.Where(e => e.ExpenseCategoryId == FilterCategory.Id);
         if (FilterProgram != null) query = query.Where(e => e.ProgramId == FilterProgram.Id);
 
         var expenses = await query.OrderByDescending(e => e.Date).ThenByDescending(e => e.Id).Take(200).ToListAsync();
         Expenses = new ObservableCollection<Expense>(expenses);
 
-        Categories = new ObservableCollection<ExpenseCategory>(await _db.ExpenseCategories.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync());
         Programs = new ObservableCollection<OrgProgram>(await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
     }
 
     [RelayCommand]
     private void ShowAddForm()
     {
-        IsAddingCategory = false;
         NewDate = DateTime.Today;
         NewVendorName = string.Empty;
         NewPaymentMethod = PaymentMethod.Cash;
-        NewCategory = null;
         NewProgram = null;
         NewAmount = 0;
         NewNotes = null;
@@ -149,7 +128,7 @@ public partial class ExpensesViewModel : ObservableObject
         ErrorMessage = null;
 
         if (string.IsNullOrWhiteSpace(NewVendorName)) { ErrorMessage = "Vendor name is required."; return; }
-        if (NewCategory == null) { ErrorMessage = "Please select an expense category."; return; }
+        if (NewProgram == null) { ErrorMessage = "Please select a program."; return; }
         if (NewAmount <= 0) { ErrorMessage = "Amount must be greater than zero."; return; }
 
         var expense = new Expense
@@ -157,8 +136,7 @@ public partial class ExpensesViewModel : ObservableObject
             Date = NewDate,
             VendorName = NewVendorName.Trim(),
             PaymentMethod = NewPaymentMethod,
-            ExpenseCategoryId = NewCategory.Id,
-            ProgramId = NewProgram?.Id,
+            ProgramId = NewProgram.Id,
             Amount = NewAmount,
             Notes = NewNotes?.Trim(),
             ReceiptAttachmentPath = NewReceiptPath,
@@ -200,7 +178,6 @@ public partial class ExpensesViewModel : ObservableObject
     private async Task DeleteExpenseAsync(Expense? expense)
     {
         if (expense == null) return;
-        // Remove the expense first — it holds the FK to JournalEntry
         _db.Expenses.Remove(expense);
 
         var receiptPath = expense.ReceiptAttachmentPath;
@@ -215,7 +192,6 @@ public partial class ExpensesViewModel : ObservableObject
         _audit.LogDelete(1, "Expense", expense.Id, $"{expense.Amount:C} to {expense.VendorName}");
         await _db.SaveChangesAsync();
 
-        // Delete receipt file only AFTER successful DB save
         if (!string.IsNullOrEmpty(receiptPath))
         {
             var fullPath = Path.Combine(_attachmentsFolder, receiptPath);
@@ -245,87 +221,7 @@ public partial class ExpensesViewModel : ObservableObject
     {
         FilterDateFrom = null;
         FilterDateTo = null;
-        FilterCategory = null;
         FilterProgram = null;
-        await LoadAsync();
-    }
-
-    // ---- Category Management ----
-
-    [RelayCommand]
-    private void ShowAddCategory()
-    {
-        IsAdding = false;
-        NewCategoryName = string.Empty;
-        NewCategoryDescription = null;
-        CategoryErrorMessage = null;
-        IsAddingCategory = true;
-    }
-
-    [RelayCommand]
-    private void CancelAddCategory()
-    {
-        IsAddingCategory = false;
-    }
-
-    [RelayCommand]
-    private async Task SaveCategoryAsync()
-    {
-        CategoryErrorMessage = null;
-        if (string.IsNullOrWhiteSpace(NewCategoryName))
-        {
-            CategoryErrorMessage = "Category name is required.";
-            return;
-        }
-
-        var exists = await _db.ExpenseCategories.AnyAsync(c => c.Name == NewCategoryName.Trim());
-        if (exists)
-        {
-            CategoryErrorMessage = "A category with this name already exists.";
-            return;
-        }
-
-        var generalFund = await _db.Funds.FirstOrDefaultAsync(f => f.Name == "General Fund")
-            ?? await _db.Funds.FirstOrDefaultAsync(f => !f.IsRestricted);
-        if (generalFund == null)
-        {
-            CategoryErrorMessage = "No fund exists. Please create a fund first.";
-            return;
-        }
-
-        // Generate the next expense account code
-        var maxCode = await _db.Accounts
-            .Where(a => a.Code.StartsWith("5"))
-            .MaxAsync(a => (string?)a.Code);
-        var nextCode = string.IsNullOrEmpty(maxCode) ? "5001"
-            : int.TryParse(maxCode[1..], out int suffix) && suffix < 9999
-                ? $"5{(suffix + 1):D3}"
-                : $"5{DateTime.UtcNow:MMddHHmm}";
-
-        var expenseAccount = new Account
-        {
-            Code = nextCode,
-            Name = $"Expense - {NewCategoryName.Trim()}",
-            AccountType = AccountType.Expense,
-            FundId = generalFund.Id,
-            IsSystem = false,
-            CreatedAt = DateTime.UtcNow
-        };
-        _db.Accounts.Add(expenseAccount);
-
-        var category = new ExpenseCategory
-        {
-            Name = NewCategoryName.Trim(),
-            Description = NewCategoryDescription?.Trim(),
-            FundId = generalFund.Id,
-            ExpenseAccount = expenseAccount,
-            IsActive = true
-        };
-
-        _db.ExpenseCategories.Add(category);
-        await _db.SaveChangesAsync();
-
-        IsAddingCategory = false;
         await LoadAsync();
     }
 

@@ -41,14 +41,14 @@ public partial class ProgramsViewModel : ObservableObject
 
         // Single grouped queries instead of per-program queries
         var incomeByProgram = await _db.Donations
-            .Where(d => d.ProgramId.HasValue && programIds.Contains(d.ProgramId.Value))
-            .GroupBy(d => d.ProgramId!.Value)
+            .Where(d => programIds.Contains(d.ProgramId))
+            .GroupBy(d => d.ProgramId)
             .Select(g => new { ProgramId = g.Key, Total = g.Sum(d => d.Amount) })
             .ToListAsync();
 
         var expensesByProgram = await _db.Expenses
-            .Where(e => e.ProgramId.HasValue && programIds.Contains(e.ProgramId.Value))
-            .GroupBy(e => e.ProgramId!.Value)
+            .Where(e => programIds.Contains(e.ProgramId))
+            .GroupBy(e => e.ProgramId)
             .Select(g => new { ProgramId = g.Key, Total = g.Sum(e => e.Amount) })
             .ToListAsync();
 

@@ -12,9 +12,7 @@ public partial class BudgetViewModel : ObservableObject
     private readonly AppDbContext _db;
 
     [ObservableProperty] private int _selectedYear = DateTime.Now.Year;
-    [ObservableProperty] private string _budgetType = "Category"; // Category or Program
     [ObservableProperty] private ObservableCollection<BudgetRow> _budgetRows = new();
-    [ObservableProperty] private ObservableCollection<ExpenseCategory> _categories = new();
     [ObservableProperty] private ObservableCollection<OrgProgram> _programs = new();
     [ObservableProperty] private string? _statusMessage;
 
@@ -23,7 +21,6 @@ public partial class BudgetViewModel : ObservableObject
     [ObservableProperty] private decimal _totalActual;
     [ObservableProperty] private decimal _totalRemaining;
 
-    public string[] BudgetTypes => new[] { "Category", "Program" };
     public int[] Years => Enumerable.Range(DateTime.Now.Year - 3, 7).ToArray();
 
     public BudgetViewModel(AppDbContext db)
@@ -35,7 +32,6 @@ public partial class BudgetViewModel : ObservableObject
     public async Task LoadAsync()
     {
         _db.ChangeTracker.Clear();
-        Categories = new ObservableCollection<ExpenseCategory>(await _db.ExpenseCategories.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync());
         Programs = new ObservableCollection<OrgProgram>(await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
         await RefreshGridAsync();
     }
@@ -44,67 +40,32 @@ public partial class BudgetViewModel : ObservableObject
     {
         var rows = new List<BudgetRow>();
 
-        if (BudgetType == "Category")
+        var progIds = Programs.Select(p => p.Id).ToList();
+        var budgets = await _db.Budgets
+            .Where(b => b.Year == SelectedYear && b.Month == null && b.ProgramId.HasValue && progIds.Contains(b.ProgramId.Value))
+            .ToListAsync();
+        var actuals = await _db.Expenses
+            .Where(e => progIds.Contains(e.ProgramId) && e.Date.Year == SelectedYear)
+            .GroupBy(e => e.ProgramId)
+            .Select(g => new { ProgramId = g.Key, Total = g.Sum(e => e.Amount) })
+            .ToListAsync();
+
+        var budgetDict = budgets.Where(b => b.ProgramId.HasValue)
+            .ToDictionary(b => b.ProgramId!.Value, b => b.Amount);
+        var actualDict = actuals.ToDictionary(a => a.ProgramId, a => a.Total);
+
+        foreach (var prog in Programs)
         {
-            var catIds = Categories.Select(c => c.Id).ToList();
-            // Single query for all budgets
-            var budgets = await _db.Budgets
-                .Where(b => b.Year == SelectedYear && b.Month == null && b.ExpenseCategoryId.HasValue && catIds.Contains(b.ExpenseCategoryId.Value))
-                .ToListAsync();
-            // Single query for all actuals
-            var actuals = await _db.Expenses
-                .Where(e => catIds.Contains(e.ExpenseCategoryId) && e.Date.Year == SelectedYear)
-                .GroupBy(e => e.ExpenseCategoryId)
-                .Select(g => new { CategoryId = g.Key, Total = g.Sum(e => e.Amount) })
-                .ToListAsync();
-
-            var budgetDict = budgets.Where(b => b.ExpenseCategoryId.HasValue)
-                .ToDictionary(b => b.ExpenseCategoryId!.Value, b => b.Amount);
-            var actualDict = actuals.ToDictionary(a => a.CategoryId, a => a.Total);
-
-            foreach (var cat in Categories)
+            var budgetAmt = budgetDict.GetValueOrDefault(prog.Id, 0);
+            var actualAmt = actualDict.GetValueOrDefault(prog.Id, 0);
+            rows.Add(new BudgetRow
             {
-                var budgetAmt = budgetDict.GetValueOrDefault(cat.Id, 0);
-                var actualAmt = actualDict.GetValueOrDefault(cat.Id, 0);
-                rows.Add(new BudgetRow
-                {
-                    Name = cat.Name,
-                    BudgetAmount = budgetAmt,
-                    ActualAmount = actualAmt,
-                    Variance = budgetAmt - actualAmt,
-                    HasBudget = budgetDict.ContainsKey(cat.Id)
-                });
-            }
-        }
-        else
-        {
-            var progIds = Programs.Select(p => p.Id).ToList();
-            var budgets = await _db.Budgets
-                .Where(b => b.Year == SelectedYear && b.Month == null && b.ProgramId.HasValue && progIds.Contains(b.ProgramId.Value))
-                .ToListAsync();
-            var actuals = await _db.Expenses
-                .Where(e => e.ProgramId.HasValue && progIds.Contains(e.ProgramId.Value) && e.Date.Year == SelectedYear)
-                .GroupBy(e => e.ProgramId!.Value)
-                .Select(g => new { ProgramId = g.Key, Total = g.Sum(e => e.Amount) })
-                .ToListAsync();
-
-            var budgetDict = budgets.Where(b => b.ProgramId.HasValue)
-                .ToDictionary(b => b.ProgramId!.Value, b => b.Amount);
-            var actualDict = actuals.ToDictionary(a => a.ProgramId, a => a.Total);
-
-            foreach (var prog in Programs)
-            {
-                var budgetAmt = budgetDict.GetValueOrDefault(prog.Id, 0);
-                var actualAmt = actualDict.GetValueOrDefault(prog.Id, 0);
-                rows.Add(new BudgetRow
-                {
-                    Name = prog.Name,
-                    BudgetAmount = budgetAmt,
-                    ActualAmount = actualAmt,
-                    Variance = budgetAmt - actualAmt,
-                    HasBudget = budgetDict.ContainsKey(prog.Id)
-                });
-            }
+                Name = prog.Name,
+                BudgetAmount = budgetAmt,
+                ActualAmount = actualAmt,
+                Variance = budgetAmt - actualAmt,
+                HasBudget = budgetDict.ContainsKey(prog.Id)
+            });
         }
 
         // Unsubscribe old rows to prevent memory leaks
@@ -155,24 +116,11 @@ public partial class BudgetViewModel : ObservableObject
     {
         if (row == null) return;
 
-        int? categoryId = null;
-        int? programId = null;
-
-        if (BudgetType == "Category")
-        {
-            var cat = Categories.FirstOrDefault(c => c.Name == row.Name);
-            if (cat == null) return;
-            categoryId = cat.Id;
-        }
-        else
-        {
-            var prog = Programs.FirstOrDefault(p => p.Name == row.Name);
-            if (prog == null) return;
-            programId = prog.Id;
-        }
+        var prog = Programs.FirstOrDefault(p => p.Name == row.Name);
+        if (prog == null) return;
 
         var existing = await _db.Budgets.FirstOrDefaultAsync(b =>
-            b.Year == SelectedYear && b.Month == null && b.ExpenseCategoryId == categoryId && b.ProgramId == programId);
+            b.Year == SelectedYear && b.Month == null && b.ProgramId == prog.Id);
 
         if (existing != null)
         {
@@ -183,19 +131,11 @@ public partial class BudgetViewModel : ObservableObject
         }
         else if (row.BudgetAmount > 0)
         {
-            _db.Budgets.Add(new Budget { Year = SelectedYear, Amount = row.BudgetAmount, ExpenseCategoryId = categoryId, ProgramId = programId });
+            _db.Budgets.Add(new Budget { Year = SelectedYear, Amount = row.BudgetAmount, ProgramId = prog.Id });
         }
     }
 
     partial void OnSelectedYearChanged(int value)
-    {
-        _ = RefreshGridAsync().ContinueWith(t =>
-        {
-            if (t.IsFaulted && t.Exception is not null)
-                StatusMessage = $"Error: {t.Exception.InnerException?.Message ?? t.Exception.Message}";
-        }, TaskScheduler.FromCurrentSynchronizationContext());
-    }
-    partial void OnBudgetTypeChanged(string value)
     {
         _ = RefreshGridAsync().ContinueWith(t =>
         {

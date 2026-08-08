@@ -11,8 +11,7 @@ public class Donation
     public DateTime Date { get; set; }
     public int SponsorId { get; set; }
     public PaymentMethod PaymentMethod { get; set; }
-    public int DonationCategoryId { get; set; }
-    public int? ProgramId { get; set; }
+    public int ProgramId { get; set; }
     public decimal Amount { get; set; }
     public string? ReceiptNumber { get; set; }
     public string? Notes { get; set; }
@@ -22,8 +21,7 @@ public class Donation
 
     // Navigation
     public Sponsor Sponsor { get; set; } = null!;
-    public DonationCategory DonationCategory { get; set; } = null!;
-    public OrgProgram? Program { get; set; }
+    public OrgProgram Program { get; set; } = null!;
     public JournalEntry JournalEntry { get; set; } = null!;
     public User CreatedByUser { get; set; } = null!;
 }

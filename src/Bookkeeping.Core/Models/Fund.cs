@@ -14,6 +14,5 @@ public class Fund
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
-    public ICollection<DonationCategory> DonationCategories { get; set; } = new List<DonationCategory>();
     public ICollection<Account> Accounts { get; set; } = new List<Account>();
 }

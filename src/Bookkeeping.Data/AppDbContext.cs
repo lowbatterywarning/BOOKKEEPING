@@ -15,8 +15,6 @@ public class AppDbContext : DbContext
     public DbSet<JournalEntryLine> JournalEntryLines => Set<JournalEntryLine>();
     public DbSet<Sponsor> Sponsors => Set<Sponsor>();
     public DbSet<SponsorTarget> SponsorTargets => Set<SponsorTarget>();
-    public DbSet<DonationCategory> DonationCategories => Set<DonationCategory>();
-    public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
     public DbSet<OrgProgram> Programs => Set<OrgProgram>();
     public DbSet<Donation> Donations => Set<Donation>();
     public DbSet<Expense> Expenses => Set<Expense>();
@@ -79,41 +77,24 @@ public class AppDbContext : DbContext
             e.Property(s => s.Notes).HasMaxLength(2000);
         });
 
-        // ---- DonationCategory ----
-        modelBuilder.Entity<DonationCategory>(e =>
-        {
-            e.HasIndex(dc => dc.Name).IsUnique();
-            e.Property(dc => dc.Name).HasMaxLength(100).IsRequired();
-            e.Property(dc => dc.Description).HasMaxLength(500);
-            e.HasOne(dc => dc.Fund).WithMany(f => f.DonationCategories).HasForeignKey(dc => dc.FundId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(dc => dc.IncomeAccount).WithMany().HasForeignKey("IncomeAccountId").OnDelete(DeleteBehavior.SetNull);
-        });
-
-        // ---- ExpenseCategory ----
-        modelBuilder.Entity<ExpenseCategory>(e =>
-        {
-            e.HasIndex(ec => ec.Name).IsUnique();
-            e.Property(ec => ec.Name).HasMaxLength(100).IsRequired();
-            e.Property(ec => ec.Description).HasMaxLength(500);
-            e.HasOne(ec => ec.Fund).WithMany().HasForeignKey(ec => ec.FundId).OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(ec => ec.ExpenseAccount).WithMany().HasForeignKey("ExpenseAccountId").OnDelete(DeleteBehavior.SetNull);
-        });
-
         // ---- OrgProgram ----
         modelBuilder.Entity<OrgProgram>(e =>
         {
             e.HasIndex(p => p.Name).IsUnique();
             e.Property(p => p.Name).HasMaxLength(200).IsRequired();
             e.Property(p => p.Description).HasMaxLength(500);
+            e.HasOne(p => p.Fund).WithMany().HasForeignKey(p => p.FundId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.IncomeAccount).WithMany().HasForeignKey("IncomeAccountId").OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.ExpenseAccount).WithMany().HasForeignKey("ExpenseAccountId").OnDelete(DeleteBehavior.SetNull);
         });
 
         // ---- SponsorTarget ----
         modelBuilder.Entity<SponsorTarget>(e =>
         {
-            e.HasIndex(t => new { t.SponsorId, t.DonationCategoryId, t.Year }).IsUnique();
+            e.HasIndex(t => new { t.SponsorId, t.ProgramId, t.Year }).IsUnique();
             e.Property(t => t.TargetAmount).HasColumnType("decimal(18,2)");
             e.HasOne(t => t.Sponsor).WithMany(s => s.Targets).HasForeignKey(t => t.SponsorId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(t => t.DonationCategory).WithMany().HasForeignKey(t => t.DonationCategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.Program).WithMany(p => p.SponsorTargets).HasForeignKey(t => t.ProgramId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ---- Donation ----
@@ -125,8 +106,7 @@ public class AppDbContext : DbContext
             e.Property(d => d.ReceiptNumber).HasMaxLength(50);
             e.Property(d => d.Notes).HasMaxLength(2000);
             e.HasOne(d => d.Sponsor).WithMany(s => s.Donations).HasForeignKey(d => d.SponsorId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(d => d.DonationCategory).WithMany(dc => dc.Donations).HasForeignKey(d => d.DonationCategoryId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(d => d.Program).WithMany(p => p.Donations).HasForeignKey(d => d.ProgramId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(d => d.Program).WithMany(p => p.Donations).HasForeignKey(d => d.ProgramId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(d => d.JournalEntry).WithOne(j => j.Donation).HasForeignKey<Donation>(d => d.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(d => d.CreatedByUser).WithMany().HasForeignKey(d => d.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             e.Property(d => d.PaymentMethod).HasConversion(new EnumToStringConverter<PaymentMethod>());
@@ -140,8 +120,7 @@ public class AppDbContext : DbContext
             e.Property(ex => ex.VendorName).HasMaxLength(200).IsRequired();
             e.Property(ex => ex.Notes).HasMaxLength(2000);
             e.Property(ex => ex.ReceiptAttachmentPath).HasMaxLength(500);
-            e.HasOne(ex => ex.ExpenseCategory).WithMany(ec => ec.Expenses).HasForeignKey(ex => ex.ExpenseCategoryId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(ex => ex.Program).WithMany(p => p.Expenses).HasForeignKey(ex => ex.ProgramId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(ex => ex.Program).WithMany(p => p.Expenses).HasForeignKey(ex => ex.ProgramId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(ex => ex.JournalEntry).WithOne(j => j.Expense).HasForeignKey<Expense>(ex => ex.JournalEntryId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(ex => ex.CreatedByUser).WithMany().HasForeignKey(ex => ex.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             e.Property(ex => ex.PaymentMethod).HasConversion(new EnumToStringConverter<PaymentMethod>());
@@ -189,10 +168,9 @@ public class AppDbContext : DbContext
         // ---- Budget ----
         modelBuilder.Entity<Budget>(e =>
         {
-            e.HasIndex(b => new { b.Year, b.Month, b.ExpenseCategoryId, b.ProgramId }).IsUnique();
+            e.HasIndex(b => new { b.Year, b.Month, b.ProgramId }).IsUnique();
             e.Property(b => b.Amount).HasColumnType("decimal(18,2)");
             e.Property(b => b.Notes).HasMaxLength(500);
-            e.HasOne(b => b.ExpenseCategory).WithMany().HasForeignKey(b => b.ExpenseCategoryId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(b => b.Program).WithMany().HasForeignKey(b => b.ProgramId).OnDelete(DeleteBehavior.Cascade);
         });
 

@@ -8,14 +8,12 @@ public class Budget
 {
     public int Id { get; set; }
     public int Year { get; set; }
-    public int? Month { get; set; } // null = annual budget
+    public int? Month { get; set; }
     public decimal Amount { get; set; }
-    public int? ExpenseCategoryId { get; set; }
     public int? ProgramId { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
-    public ExpenseCategory? ExpenseCategory { get; set; }
     public OrgProgram? Program { get; set; }
 }

@@ -39,13 +39,13 @@ public class JournalEngine : IJournalEngine
         // Find the asset account (Cash or Bank)
         var assetAccount = await GetAssetAccountAsync(donation.PaymentMethod);
 
-        // Find the income account for this donation category
-        var incomeAccount = await GetOrCreateIncomeAccountAsync(donation.DonationCategoryId);
+        // Find the income account for this program
+        var incomeAccount = await GetOrCreateIncomeAccountAsync(donation.ProgramId);
 
-        // Load the category with fund and sponsor name for the description
-        var category = await _db.DonationCategories
-            .Include(dc => dc.Fund)
-            .FirstAsync(dc => dc.Id == donation.DonationCategoryId);
+        // Load the program with fund for the description and fund tracking
+        var program = await _db.Programs
+            .Include(p => p.Fund)
+            .FirstAsync(p => p.Id == donation.ProgramId);
 
         var sponsorName = await _db.Sponsors
             .Where(s => s.Id == donation.SponsorId)
@@ -56,7 +56,7 @@ public class JournalEngine : IJournalEngine
         var entry = new JournalEntry
         {
             Date = donation.Date,
-            Description = $"Donation - {category.Name} from {sponsorName}",
+            Description = $"Donation - {program.Name} from {sponsorName}",
             Reference = donation.ReceiptNumber,
             CreatedByUserId = donation.CreatedByUserId,
             CreatedAt = DateTime.UtcNow
@@ -67,7 +67,7 @@ public class JournalEngine : IJournalEngine
             AccountId = assetAccount.Id,
             DebitAmount = donation.Amount,
             CreditAmount = 0,
-            FundId = category.FundId,
+            FundId = program.FundId,
             Description = $"Debit: {assetAccount.Name}"
         });
 
@@ -76,8 +76,8 @@ public class JournalEngine : IJournalEngine
             AccountId = incomeAccount.Id,
             DebitAmount = 0,
             CreditAmount = donation.Amount,
-            FundId = category.FundId,
-            Description = $"Credit: {incomeAccount.Name} ({category.Name})"
+            FundId = program.FundId,
+            Description = $"Credit: {incomeAccount.Name} ({program.Name})"
         });
 
         if (!IsBalanced(entry))
@@ -99,21 +99,21 @@ public class JournalEngine : IJournalEngine
         // Find the asset account (Cash or Bank)
         var assetAccount = await GetAssetAccountAsync(expense.PaymentMethod);
 
-        // Find the expense account for this expense category
-        var expenseAccount = await GetOrCreateExpenseAccountAsync(expense.ExpenseCategoryId);
+        // Find the expense account for this program
+        var expenseAccount = await GetOrCreateExpenseAccountAsync(expense.ProgramId);
 
-        // Determine fund from the expense category
-        var category = await _db.ExpenseCategories
-            .Include(ec => ec.Fund)
-            .FirstAsync(ec => ec.Id == expense.ExpenseCategoryId);
+        // Determine fund from the program
+        var program = await _db.Programs
+            .Include(p => p.Fund)
+            .FirstAsync(p => p.Id == expense.ProgramId);
 
-        int? fundId = category.FundId;
+        int? fundId = program.FundId;
 
         // Create the journal entry
         var entry = new JournalEntry
         {
             Date = expense.Date,
-            Description = $"Expense - {category.Name} to {expense.VendorName}",
+            Description = $"Expense - {program.Name} to {expense.VendorName}",
             Reference = null,
             CreatedByUserId = expense.CreatedByUserId,
             CreatedAt = DateTime.UtcNow
@@ -367,23 +367,23 @@ public class JournalEngine : IJournalEngine
         return await _db.Accounts.FirstAsync(a => a.Code == code);
     }
 
-    private async Task<Account> GetOrCreateIncomeAccountAsync(int donationCategoryId)
+    private async Task<Account> GetOrCreateIncomeAccountAsync(int programId)
     {
-        var category = await _db.DonationCategories
-            .Include(dc => dc.IncomeAccount)
-            .FirstAsync(dc => dc.Id == donationCategoryId);
+        var program = await _db.Programs
+            .Include(p => p.IncomeAccount)
+            .FirstAsync(p => p.Id == programId);
 
-        if (category.IncomeAccount != null)
-            return category.IncomeAccount;
+        if (program.IncomeAccount != null)
+            return program.IncomeAccount;
 
-        // Create the income account for this category
+        // Create the income account for this program
         var nextCode = await GetNextAccountCodeAsync("4");
         var account = new Account
         {
             Code = nextCode,
-            Name = $"Donation Income - {category.Name}",
+            Name = $"Donation Income - {program.Name}",
             AccountType = AccountType.Income,
-            FundId = category.FundId,
+            FundId = program.FundId,
             IsSystem = false,
             CreatedAt = DateTime.UtcNow
         };
@@ -392,23 +392,23 @@ public class JournalEngine : IJournalEngine
         return account;
     }
 
-    private async Task<Account> GetOrCreateExpenseAccountAsync(int expenseCategoryId)
+    private async Task<Account> GetOrCreateExpenseAccountAsync(int programId)
     {
-        var category = await _db.ExpenseCategories
-            .Include(ec => ec.ExpenseAccount)
-            .FirstAsync(ec => ec.Id == expenseCategoryId);
+        var program = await _db.Programs
+            .Include(p => p.ExpenseAccount)
+            .FirstAsync(p => p.Id == programId);
 
-        if (category.ExpenseAccount != null)
-            return category.ExpenseAccount;
+        if (program.ExpenseAccount != null)
+            return program.ExpenseAccount;
 
-        // Create the expense account for this category
+        // Create the expense account for this program
         var nextCode = await GetNextAccountCodeAsync("5");
         var account = new Account
         {
             Code = nextCode,
-            Name = $"Expense - {category.Name}",
+            Name = $"Expense - {program.Name}",
             AccountType = AccountType.Expense,
-            FundId = category.FundId,
+            FundId = program.FundId,
             IsSystem = false,
             CreatedAt = DateTime.UtcNow
         };

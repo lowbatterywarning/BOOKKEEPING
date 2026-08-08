@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bookkeeping.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260728180745_AddSponsorAnnualTarget")]
-    partial class AddSponsorAnnualTarget
+    [Migration("20260806112621_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -191,46 +191,6 @@ namespace Bookkeeping.Data.Migrations
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("Bookkeeping.Core.Models.BankReconciliation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Difference")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("LedgerBalance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("StatementBalance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("StatementDate")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("StatementDate");
-
-                    b.ToTable("BankReconciliations");
-                });
-
             modelBuilder.Entity("Bookkeeping.Core.Models.Budget", b =>
                 {
                     b.Property<int>("Id")
@@ -242,9 +202,6 @@ namespace Bookkeeping.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("ExpenseCategoryId")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("Month")
                         .HasColumnType("INTEGER");
@@ -261,11 +218,9 @@ namespace Bookkeeping.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ExpenseCategoryId");
-
                     b.HasIndex("ProgramId");
 
-                    b.HasIndex("Year", "Month", "ExpenseCategoryId", "ProgramId")
+                    b.HasIndex("Year", "Month", "ProgramId")
                         .IsUnique();
 
                     b.ToTable("Budgets");
@@ -331,9 +286,6 @@ namespace Bookkeeping.Data.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("DonationCategoryId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("JournalEntryId")
                         .HasColumnType("INTEGER");
 
@@ -345,7 +297,7 @@ namespace Bookkeeping.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("ProgramId")
+                    b.Property<int>("ProgramId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ReceiptNumber")
@@ -361,8 +313,6 @@ namespace Bookkeeping.Data.Migrations
 
                     b.HasIndex("Date");
 
-                    b.HasIndex("DonationCategoryId");
-
                     b.HasIndex("JournalEntryId")
                         .IsUnique();
 
@@ -373,45 +323,6 @@ namespace Bookkeeping.Data.Migrations
                     b.HasIndex("SponsorId");
 
                     b.ToTable("Donations");
-                });
-
-            modelBuilder.Entity("Bookkeeping.Core.Models.DonationCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("FundId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("IncomeAccountId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FundId");
-
-                    b.HasIndex("IncomeAccountId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("DonationCategories");
                 });
 
             modelBuilder.Entity("Bookkeeping.Core.Models.Expense", b =>
@@ -432,9 +343,6 @@ namespace Bookkeeping.Data.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ExpenseCategoryId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("JournalEntryId")
                         .HasColumnType("INTEGER");
 
@@ -446,7 +354,7 @@ namespace Bookkeeping.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("ProgramId")
+                    b.Property<int>("ProgramId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ReceiptAttachmentPath")
@@ -464,53 +372,12 @@ namespace Bookkeeping.Data.Migrations
 
                     b.HasIndex("Date");
 
-                    b.HasIndex("ExpenseCategoryId");
-
                     b.HasIndex("JournalEntryId")
                         .IsUnique();
 
                     b.HasIndex("ProgramId");
 
                     b.ToTable("Expenses");
-                });
-
-            modelBuilder.Entity("Bookkeeping.Core.Models.ExpenseCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("ExpenseAccountId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("FundId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExpenseAccountId");
-
-                    b.HasIndex("FundId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("ExpenseCategories");
                 });
 
             modelBuilder.Entity("Bookkeeping.Core.Models.Fund", b =>
@@ -638,6 +505,15 @@ namespace Bookkeeping.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("ExpenseAccountId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("FundId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("IncomeAccountId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
@@ -648,34 +524,16 @@ namespace Bookkeeping.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExpenseAccountId");
+
+                    b.HasIndex("FundId");
+
+                    b.HasIndex("IncomeAccountId");
+
                     b.HasIndex("Name")
                         .IsUnique();
 
                     b.ToTable("Programs");
-                });
-
-            modelBuilder.Entity("Bookkeeping.Core.Models.ReconciledItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("BankReconciliationId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsCleared")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("JournalEntryLineId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BankReconciliationId");
-
-                    b.HasIndex("JournalEntryLineId");
-
-                    b.ToTable("ReconciledItems");
                 });
 
             modelBuilder.Entity("Bookkeeping.Core.Models.Sponsor", b =>
@@ -686,9 +544,6 @@ namespace Bookkeeping.Data.Migrations
 
                     b.Property<string>("Address")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal?>("AnnualTargetAmount")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -719,6 +574,37 @@ namespace Bookkeeping.Data.Migrations
                     b.HasIndex("Name");
 
                     b.ToTable("Sponsors");
+                });
+
+            modelBuilder.Entity("Bookkeeping.Core.Models.SponsorTarget", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProgramId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SponsorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TargetAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProgramId");
+
+                    b.HasIndex("SponsorId", "ProgramId", "Year")
+                        .IsUnique();
+
+                    b.ToTable("SponsorTargets");
                 });
 
             modelBuilder.Entity("Bookkeeping.Core.Models.User", b =>
@@ -803,30 +689,12 @@ namespace Bookkeeping.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Bookkeeping.Core.Models.BankReconciliation", b =>
-                {
-                    b.HasOne("Bookkeeping.Core.Models.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-                });
-
             modelBuilder.Entity("Bookkeeping.Core.Models.Budget", b =>
                 {
-                    b.HasOne("Bookkeeping.Core.Models.ExpenseCategory", "ExpenseCategory")
-                        .WithMany()
-                        .HasForeignKey("ExpenseCategoryId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("Bookkeeping.Core.Models.OrgProgram", "Program")
                         .WithMany()
                         .HasForeignKey("ProgramId")
                         .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("ExpenseCategory");
 
                     b.Navigation("Program");
                 });
@@ -858,12 +726,6 @@ namespace Bookkeeping.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Bookkeeping.Core.Models.DonationCategory", "DonationCategory")
-                        .WithMany("Donations")
-                        .HasForeignKey("DonationCategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Bookkeeping.Core.Models.JournalEntry", "JournalEntry")
                         .WithOne("Donation")
                         .HasForeignKey("Bookkeeping.Core.Models.Donation", "JournalEntryId")
@@ -873,7 +735,8 @@ namespace Bookkeeping.Data.Migrations
                     b.HasOne("Bookkeeping.Core.Models.OrgProgram", "Program")
                         .WithMany("Donations")
                         .HasForeignKey("ProgramId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Bookkeeping.Core.Models.Sponsor", "Sponsor")
                         .WithMany("Donations")
@@ -883,8 +746,6 @@ namespace Bookkeeping.Data.Migrations
 
                     b.Navigation("CreatedByUser");
 
-                    b.Navigation("DonationCategory");
-
                     b.Navigation("JournalEntry");
 
                     b.Navigation("Program");
@@ -892,34 +753,11 @@ namespace Bookkeeping.Data.Migrations
                     b.Navigation("Sponsor");
                 });
 
-            modelBuilder.Entity("Bookkeeping.Core.Models.DonationCategory", b =>
-                {
-                    b.HasOne("Bookkeeping.Core.Models.Fund", "Fund")
-                        .WithMany("DonationCategories")
-                        .HasForeignKey("FundId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Bookkeeping.Core.Models.Account", "IncomeAccount")
-                        .WithMany()
-                        .HasForeignKey("IncomeAccountId");
-
-                    b.Navigation("Fund");
-
-                    b.Navigation("IncomeAccount");
-                });
-
             modelBuilder.Entity("Bookkeeping.Core.Models.Expense", b =>
                 {
                     b.HasOne("Bookkeeping.Core.Models.User", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Bookkeeping.Core.Models.ExpenseCategory", "ExpenseCategory")
-                        .WithMany("Expenses")
-                        .HasForeignKey("ExpenseCategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -932,31 +770,14 @@ namespace Bookkeeping.Data.Migrations
                     b.HasOne("Bookkeeping.Core.Models.OrgProgram", "Program")
                         .WithMany("Expenses")
                         .HasForeignKey("ProgramId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("CreatedByUser");
-
-                    b.Navigation("ExpenseCategory");
 
                     b.Navigation("JournalEntry");
 
                     b.Navigation("Program");
-                });
-
-            modelBuilder.Entity("Bookkeeping.Core.Models.ExpenseCategory", b =>
-                {
-                    b.HasOne("Bookkeeping.Core.Models.Account", "ExpenseAccount")
-                        .WithMany()
-                        .HasForeignKey("ExpenseAccountId");
-
-                    b.HasOne("Bookkeeping.Core.Models.Fund", "Fund")
-                        .WithMany()
-                        .HasForeignKey("FundId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("ExpenseAccount");
-
-                    b.Navigation("Fund");
                 });
 
             modelBuilder.Entity("Bookkeeping.Core.Models.JournalEntry", b =>
@@ -996,23 +817,48 @@ namespace Bookkeeping.Data.Migrations
                     b.Navigation("JournalEntry");
                 });
 
-            modelBuilder.Entity("Bookkeeping.Core.Models.ReconciledItem", b =>
+            modelBuilder.Entity("Bookkeeping.Core.Models.OrgProgram", b =>
                 {
-                    b.HasOne("Bookkeeping.Core.Models.BankReconciliation", "BankReconciliation")
-                        .WithMany("ReconciledItems")
-                        .HasForeignKey("BankReconciliationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Bookkeeping.Core.Models.JournalEntryLine", "JournalEntryLine")
+                    b.HasOne("Bookkeeping.Core.Models.Account", "ExpenseAccount")
                         .WithMany()
-                        .HasForeignKey("JournalEntryLineId")
+                        .HasForeignKey("ExpenseAccountId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Bookkeeping.Core.Models.Fund", "Fund")
+                        .WithMany()
+                        .HasForeignKey("FundId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("BankReconciliation");
+                    b.HasOne("Bookkeeping.Core.Models.Account", "IncomeAccount")
+                        .WithMany()
+                        .HasForeignKey("IncomeAccountId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("JournalEntryLine");
+                    b.Navigation("ExpenseAccount");
+
+                    b.Navigation("Fund");
+
+                    b.Navigation("IncomeAccount");
+                });
+
+            modelBuilder.Entity("Bookkeeping.Core.Models.SponsorTarget", b =>
+                {
+                    b.HasOne("Bookkeeping.Core.Models.OrgProgram", "Program")
+                        .WithMany("SponsorTargets")
+                        .HasForeignKey("ProgramId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Bookkeeping.Core.Models.Sponsor", "Sponsor")
+                        .WithMany("Targets")
+                        .HasForeignKey("SponsorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Program");
+
+                    b.Navigation("Sponsor");
                 });
 
             modelBuilder.Entity("Bookkeeping.Core.Models.Account", b =>
@@ -1022,26 +868,9 @@ namespace Bookkeeping.Data.Migrations
                     b.Navigation("JournalEntryLines");
                 });
 
-            modelBuilder.Entity("Bookkeeping.Core.Models.BankReconciliation", b =>
-                {
-                    b.Navigation("ReconciledItems");
-                });
-
-            modelBuilder.Entity("Bookkeeping.Core.Models.DonationCategory", b =>
-                {
-                    b.Navigation("Donations");
-                });
-
-            modelBuilder.Entity("Bookkeeping.Core.Models.ExpenseCategory", b =>
-                {
-                    b.Navigation("Expenses");
-                });
-
             modelBuilder.Entity("Bookkeeping.Core.Models.Fund", b =>
                 {
                     b.Navigation("Accounts");
-
-                    b.Navigation("DonationCategories");
                 });
 
             modelBuilder.Entity("Bookkeeping.Core.Models.JournalEntry", b =>
@@ -1060,11 +889,15 @@ namespace Bookkeeping.Data.Migrations
                     b.Navigation("Donations");
 
                     b.Navigation("Expenses");
+
+                    b.Navigation("SponsorTargets");
                 });
 
             modelBuilder.Entity("Bookkeeping.Core.Models.Sponsor", b =>
                 {
                     b.Navigation("Donations");
+
+                    b.Navigation("Targets");
                 });
 #pragma warning restore 612, 618
         }

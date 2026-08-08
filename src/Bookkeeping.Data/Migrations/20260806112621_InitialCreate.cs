@@ -45,22 +45,6 @@ namespace Bookkeeping.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Programs",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Programs", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Sponsors",
                 columns: table => new
                 {
@@ -164,7 +148,6 @@ namespace Bookkeeping.Data.Migrations
                     Date = table.Column<DateTime>(type: "TEXT", nullable: false),
                     Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
                     Reference = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
-                    IsPosted = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedByUserId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
@@ -180,54 +163,40 @@ namespace Bookkeeping.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "DonationCategories",
+                name: "Programs",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
                     FundId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
                     IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IncomeAccountId = table.Column<int>(type: "INTEGER", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DonationCategories", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DonationCategories_Accounts_IncomeAccountId",
-                        column: x => x.IncomeAccountId,
-                        principalTable: "Accounts",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_DonationCategories_Funds_FundId",
-                        column: x => x.FundId,
-                        principalTable: "Funds",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ExpenseCategories",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IncomeAccountId = table.Column<int>(type: "INTEGER", nullable: true),
                     ExpenseAccountId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ExpenseCategories", x => x.Id);
+                    table.PrimaryKey("PK_Programs", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ExpenseCategories_Accounts_ExpenseAccountId",
+                        name: "FK_Programs_Accounts_ExpenseAccountId",
                         column: x => x.ExpenseAccountId,
                         principalTable: "Accounts",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Programs_Accounts_IncomeAccountId",
+                        column: x => x.IncomeAccountId,
+                        principalTable: "Accounts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Programs_Funds_FundId",
+                        column: x => x.FundId,
+                        principalTable: "Funds",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -298,6 +267,30 @@ namespace Bookkeeping.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Budgets",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Year = table.Column<int>(type: "INTEGER", nullable: false),
+                    Month = table.Column<int>(type: "INTEGER", nullable: true),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ProgramId = table.Column<int>(type: "INTEGER", nullable: true),
+                    Notes = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Budgets", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Budgets_Programs_ProgramId",
+                        column: x => x.ProgramId,
+                        principalTable: "Programs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Donations",
                 columns: table => new
                 {
@@ -306,8 +299,7 @@ namespace Bookkeeping.Data.Migrations
                     Date = table.Column<DateTime>(type: "TEXT", nullable: false),
                     SponsorId = table.Column<int>(type: "INTEGER", nullable: false),
                     PaymentMethod = table.Column<string>(type: "TEXT", nullable: false),
-                    DonationCategoryId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ProgramId = table.Column<int>(type: "INTEGER", nullable: true),
+                    ProgramId = table.Column<int>(type: "INTEGER", nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     ReceiptNumber = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true),
                     Notes = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
@@ -319,12 +311,6 @@ namespace Bookkeeping.Data.Migrations
                 {
                     table.PrimaryKey("PK_Donations", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Donations_DonationCategories_DonationCategoryId",
-                        column: x => x.DonationCategoryId,
-                        principalTable: "DonationCategories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
                         name: "FK_Donations_JournalEntries_JournalEntryId",
                         column: x => x.JournalEntryId,
                         principalTable: "JournalEntries",
@@ -335,7 +321,7 @@ namespace Bookkeeping.Data.Migrations
                         column: x => x.ProgramId,
                         principalTable: "Programs",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Donations_Sponsors_SponsorId",
                         column: x => x.SponsorId,
@@ -359,8 +345,7 @@ namespace Bookkeeping.Data.Migrations
                     Date = table.Column<DateTime>(type: "TEXT", nullable: false),
                     VendorName = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
                     PaymentMethod = table.Column<string>(type: "TEXT", nullable: false),
-                    ExpenseCategoryId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ProgramId = table.Column<int>(type: "INTEGER", nullable: true),
+                    ProgramId = table.Column<int>(type: "INTEGER", nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Notes = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
                     ReceiptAttachmentPath = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
@@ -372,12 +357,6 @@ namespace Bookkeeping.Data.Migrations
                 {
                     table.PrimaryKey("PK_Expenses", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Expenses_ExpenseCategories_ExpenseCategoryId",
-                        column: x => x.ExpenseCategoryId,
-                        principalTable: "ExpenseCategories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
                         name: "FK_Expenses_JournalEntries_JournalEntryId",
                         column: x => x.JournalEntryId,
                         principalTable: "JournalEntries",
@@ -388,13 +367,42 @@ namespace Bookkeeping.Data.Migrations
                         column: x => x.ProgramId,
                         principalTable: "Programs",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Expenses_Users_CreatedByUserId",
                         column: x => x.CreatedByUserId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SponsorTargets",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    SponsorId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ProgramId = table.Column<int>(type: "INTEGER", nullable: false),
+                    TargetAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Year = table.Column<int>(type: "INTEGER", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SponsorTargets", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SponsorTargets_Programs_ProgramId",
+                        column: x => x.ProgramId,
+                        principalTable: "Programs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SponsorTargets_Sponsors_SponsorId",
+                        column: x => x.SponsorId,
+                        principalTable: "Sponsors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.InsertData(
@@ -470,6 +478,17 @@ namespace Bookkeeping.Data.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Budgets_ProgramId",
+                table: "Budgets",
+                column: "ProgramId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Budgets_Year_Month_ProgramId",
+                table: "Budgets",
+                columns: new[] { "Year", "Month", "ProgramId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CashBankTransfers_CreatedByUserId",
                 table: "CashBankTransfers",
                 column: "CreatedByUserId");
@@ -486,22 +505,6 @@ namespace Bookkeeping.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_DonationCategories_FundId",
-                table: "DonationCategories",
-                column: "FundId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_DonationCategories_IncomeAccountId",
-                table: "DonationCategories",
-                column: "IncomeAccountId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_DonationCategories_Name",
-                table: "DonationCategories",
-                column: "Name",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Donations_CreatedByUserId",
                 table: "Donations",
                 column: "CreatedByUserId");
@@ -510,11 +513,6 @@ namespace Bookkeeping.Data.Migrations
                 name: "IX_Donations_Date",
                 table: "Donations",
                 column: "Date");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Donations_DonationCategoryId",
-                table: "Donations",
-                column: "DonationCategoryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Donations_JournalEntryId",
@@ -538,17 +536,6 @@ namespace Bookkeeping.Data.Migrations
                 column: "SponsorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ExpenseCategories_ExpenseAccountId",
-                table: "ExpenseCategories",
-                column: "ExpenseAccountId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ExpenseCategories_Name",
-                table: "ExpenseCategories",
-                column: "Name",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Expenses_CreatedByUserId",
                 table: "Expenses",
                 column: "CreatedByUserId");
@@ -557,11 +544,6 @@ namespace Bookkeeping.Data.Migrations
                 name: "IX_Expenses_Date",
                 table: "Expenses",
                 column: "Date");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Expenses_ExpenseCategoryId",
-                table: "Expenses",
-                column: "ExpenseCategoryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Expenses_JournalEntryId",
@@ -606,6 +588,21 @@ namespace Bookkeeping.Data.Migrations
                 column: "JournalEntryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Programs_ExpenseAccountId",
+                table: "Programs",
+                column: "ExpenseAccountId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Programs_FundId",
+                table: "Programs",
+                column: "FundId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Programs_IncomeAccountId",
+                table: "Programs",
+                column: "IncomeAccountId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Programs_Name",
                 table: "Programs",
                 column: "Name",
@@ -615,6 +612,17 @@ namespace Bookkeeping.Data.Migrations
                 name: "IX_Sponsors_Name",
                 table: "Sponsors",
                 column: "Name");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SponsorTargets_ProgramId",
+                table: "SponsorTargets",
+                column: "ProgramId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SponsorTargets_SponsorId_ProgramId_Year",
+                table: "SponsorTargets",
+                columns: new[] { "SponsorId", "ProgramId", "Year" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Username",
@@ -633,6 +641,9 @@ namespace Bookkeeping.Data.Migrations
                 name: "AuditLogs");
 
             migrationBuilder.DropTable(
+                name: "Budgets");
+
+            migrationBuilder.DropTable(
                 name: "CashBankTransfers");
 
             migrationBuilder.DropTable(
@@ -645,25 +656,22 @@ namespace Bookkeeping.Data.Migrations
                 name: "JournalEntryLines");
 
             migrationBuilder.DropTable(
-                name: "DonationCategories");
-
-            migrationBuilder.DropTable(
-                name: "Sponsors");
-
-            migrationBuilder.DropTable(
-                name: "ExpenseCategories");
-
-            migrationBuilder.DropTable(
-                name: "Programs");
+                name: "SponsorTargets");
 
             migrationBuilder.DropTable(
                 name: "JournalEntries");
 
             migrationBuilder.DropTable(
-                name: "Accounts");
+                name: "Programs");
+
+            migrationBuilder.DropTable(
+                name: "Sponsors");
 
             migrationBuilder.DropTable(
                 name: "Users");
+
+            migrationBuilder.DropTable(
+                name: "Accounts");
 
             migrationBuilder.DropTable(
                 name: "Funds");

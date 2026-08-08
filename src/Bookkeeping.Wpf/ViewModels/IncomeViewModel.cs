@@ -21,8 +21,6 @@ public partial class IncomeViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<Sponsor> _sponsors = new();
     [ObservableProperty]
-    private ObservableCollection<DonationCategory> _categories = new();
-    [ObservableProperty]
     private ObservableCollection<OrgProgram> _programs = new();
 
     // Filter
@@ -33,7 +31,7 @@ public partial class IncomeViewModel : ObservableObject
     [ObservableProperty]
     private Sponsor? _filterSponsor;
     [ObservableProperty]
-    private DonationCategory? _filterCategory;
+    private OrgProgram? _filterProgram;
 
     // Add form
     [ObservableProperty]
@@ -45,8 +43,6 @@ public partial class IncomeViewModel : ObservableObject
     [ObservableProperty]
     private PaymentMethod _newPaymentMethod = PaymentMethod.Cash;
     [ObservableProperty]
-    private DonationCategory? _newCategory;
-    [ObservableProperty]
     private OrgProgram? _newProgram;
     [ObservableProperty]
     private decimal _newAmount;
@@ -57,15 +53,7 @@ public partial class IncomeViewModel : ObservableObject
     [ObservableProperty]
     private string? _errorMessage;
 
-    // Add Category form
-    [ObservableProperty]
-    private bool _isAddingCategory;
-    [ObservableProperty]
-    private string _newCategoryName = string.Empty;
-    [ObservableProperty]
-    private string? _newCategoryDescription;
-    [ObservableProperty]
-    private string? _categoryErrorMessage;
+
 
     public IncomeViewModel(AppDbContext db, IJournalEngine journal, Services.AuditService audit)
     {
@@ -80,31 +68,27 @@ public partial class IncomeViewModel : ObservableObject
         _db.ChangeTracker.Clear();
         var query = _db.Donations
             .Include(d => d.Sponsor)
-            .Include(d => d.DonationCategory)
             .Include(d => d.Program)
             .AsQueryable();
 
         if (FilterDateFrom.HasValue) query = query.Where(d => d.Date >= FilterDateFrom.Value);
         if (FilterDateTo.HasValue) query = query.Where(d => d.Date <= FilterDateTo.Value);
         if (FilterSponsor != null) query = query.Where(d => d.SponsorId == FilterSponsor.Id);
-        if (FilterCategory != null) query = query.Where(d => d.DonationCategoryId == FilterCategory.Id);
+        if (FilterProgram != null) query = query.Where(d => d.ProgramId == FilterProgram.Id);
 
         var donations = await query.OrderByDescending(d => d.Date).ThenByDescending(d => d.Id).Take(200).ToListAsync();
         Donations = new ObservableCollection<Donation>(donations);
 
         Sponsors = new ObservableCollection<Sponsor>(await _db.Sponsors.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync());
-        Categories = new ObservableCollection<DonationCategory>(await _db.DonationCategories.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync());
         Programs = new ObservableCollection<OrgProgram>(await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
     }
 
     [RelayCommand]
     private void ShowAddForm()
     {
-        IsAddingCategory = false;
         NewDate = DateTime.Today;
         NewSponsor = null;
         NewPaymentMethod = PaymentMethod.Cash;
-        NewCategory = null;
         NewProgram = null;
         NewAmount = 0;
         NewReceiptNumber = null;
@@ -125,7 +109,7 @@ public partial class IncomeViewModel : ObservableObject
         ErrorMessage = null;
 
         if (NewSponsor == null) { ErrorMessage = "Please select a sponsor."; return; }
-        if (NewCategory == null) { ErrorMessage = "Please select a donation category."; return; }
+        if (NewProgram == null) { ErrorMessage = "Please select a program."; return; }
         if (NewAmount <= 0) { ErrorMessage = "Amount must be greater than zero."; return; }
 
         var donation = new Donation
@@ -133,8 +117,7 @@ public partial class IncomeViewModel : ObservableObject
             Date = NewDate,
             SponsorId = NewSponsor.Id,
             PaymentMethod = NewPaymentMethod,
-            DonationCategoryId = NewCategory.Id,
-            ProgramId = NewProgram?.Id,
+            ProgramId = NewProgram.Id,
             Amount = NewAmount,
             ReceiptNumber = NewReceiptNumber?.Trim(),
             Notes = NewNotes?.Trim(),
@@ -195,86 +178,7 @@ public partial class IncomeViewModel : ObservableObject
         FilterDateFrom = null;
         FilterDateTo = null;
         FilterSponsor = null;
-        FilterCategory = null;
-        await LoadAsync();
-    }
-
-    // ---- Category Management ----
-
-    [RelayCommand]
-    private void ShowAddCategory()
-    {
-        IsAdding = false;
-        NewCategoryName = string.Empty;
-        NewCategoryDescription = null;
-        CategoryErrorMessage = null;
-        IsAddingCategory = true;
-    }
-
-    [RelayCommand]
-    private void CancelAddCategory()
-    {
-        IsAddingCategory = false;
-    }
-
-    [RelayCommand]
-    private async Task SaveCategoryAsync()
-    {
-        CategoryErrorMessage = null;
-        if (string.IsNullOrWhiteSpace(NewCategoryName))
-        {
-            CategoryErrorMessage = "Category name is required.";
-            return;
-        }
-
-        var exists = await _db.DonationCategories.AnyAsync(c => c.Name == NewCategoryName.Trim());
-        if (exists)
-        {
-            CategoryErrorMessage = "A category with this name already exists.";
-            return;
-        }
-
-        var generalFund = await _db.Funds.FirstOrDefaultAsync(f => f.Name == "General Fund")
-            ?? await _db.Funds.FirstOrDefaultAsync(f => !f.IsRestricted);
-        if (generalFund == null)
-        {
-            CategoryErrorMessage = "No fund exists. Please create a fund first.";
-            return;
-        }
-
-        // Generate the next income account code
-        var maxCode = await _db.Accounts
-            .Where(a => a.Code.StartsWith("4"))
-            .MaxAsync(a => (string?)a.Code);
-        var nextCode = string.IsNullOrEmpty(maxCode) ? "4001"
-            : int.TryParse(maxCode[1..], out int suffix) && suffix < 9999
-                ? $"4{(suffix + 1):D3}"
-                : $"4{DateTime.UtcNow:MMddHHmm}";
-
-        var incomeAccount = new Account
-        {
-            Code = nextCode,
-            Name = $"Donation Income - {NewCategoryName.Trim()}",
-            AccountType = AccountType.Income,
-            FundId = generalFund.Id,
-            IsSystem = false,
-            CreatedAt = DateTime.UtcNow
-        };
-        _db.Accounts.Add(incomeAccount);
-
-        var category = new DonationCategory
-        {
-            Name = NewCategoryName.Trim(),
-            Description = NewCategoryDescription?.Trim(),
-            FundId = generalFund.Id,
-            IncomeAccount = incomeAccount,
-            IsActive = true
-        };
-
-        _db.DonationCategories.Add(category);
-        await _db.SaveChangesAsync();
-
-        IsAddingCategory = false;
+        FilterProgram = null;
         await LoadAsync();
     }
 

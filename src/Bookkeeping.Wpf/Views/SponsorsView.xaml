@@ -92,8 +92,15 @@
                     <TextBlock Text="Address" FontSize="10" Foreground="Gray"/>
                     <TextBox Text="{Binding FilterAddress, UpdateSourceTrigger=PropertyChanged}" Height="24" FontSize="12"/>
                 </StackPanel>
+                <StackPanel Width="160" Margin="0,0,6,0">
+                    <TextBlock Text="Category" FontSize="10" Foreground="Gray"/>
+                    <ComboBox ItemsSource="{Binding FilterCategories}" SelectedValue="{Binding FilterCategoryId}"
+                              DisplayMemberPath="Name" SelectedValuePath="Id" Height="24" FontSize="12"/>
+                </StackPanel>
                 <Button Content="Apply Filters" Width="90" Background="#2980b9" Foreground="White"
                         Height="24" Margin="0,12,0,0" Command="{Binding LoadCommand}"/>
+                <Button Content="Clear Filters" Width="80" Height="24" Margin="6,12,0,0"
+                        Command="{Binding ClearFiltersCommand}"/>
             </WrapPanel>
         </Border>
 
