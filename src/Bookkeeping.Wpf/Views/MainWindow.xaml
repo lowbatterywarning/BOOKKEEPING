@@ -7,7 +7,7 @@
         xmlns:views="clr-namespace:Bookkeeping.Wpf.Views"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}" Height="700" Width="1100"
-        MinHeight="500" MinWidth="900"
+        MinHeight="500" MinWidth="550"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
@@ -16,6 +16,9 @@
         </DataTemplate>
         <DataTemplate DataType="{x:Type vm:SponsorsViewModel}">
             <views:SponsorsView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SponsorDashboardViewModel}">
+            <views:SponsorDashboardView />
         </DataTemplate>
         <DataTemplate DataType="{x:Type vm:IncomeViewModel}">
             <views:IncomeView />
@@ -61,6 +64,9 @@
                 <Button Content="Sponsors" Style="{StaticResource NavButton}"
                         Background="#34495e" Foreground="White"
                         Command="{Binding NavigateToSponsorsCommand}"/>
+                <Button Content="Sponsor Dashboard" Style="{StaticResource NavButton}"
+                        Background="#34495e" Foreground="White"
+                        Command="{Binding NavigateToSponsorDashboardCommand}"/>
                 <Button Content="Revenue" Style="{StaticResource NavButton}"
                         Background="#34495e" Foreground="White"
                         Command="{Binding NavigateToIncomeCommand}"/>

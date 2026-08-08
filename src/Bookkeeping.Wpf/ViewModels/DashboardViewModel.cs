@@ -4,30 +4,29 @@ using Bookkeeping.Core.Models;
 using Bookkeeping.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
+using System.Windows;
 
 namespace Bookkeeping.Wpf.ViewModels;
 
+/// <summary>
+/// ViewModel for the main dashboard. Loads program revenue/expense summaries
+/// and presents them as interactive tiles with column charts.
+/// </summary>
 public partial class DashboardViewModel : ObservableObject
 {
     private readonly AppDbContext _db;
 
-    [ObservableProperty]
-    private decimal _cashBalance;
+    [ObservableProperty] private ObservableCollection<DashboardTileViewModel> _tiles = new();
 
-    [ObservableProperty]
-    private decimal _bankBalance;
+    [ObservableProperty] private bool _isLoading;
 
-    [ObservableProperty]
-    private decimal _totalIncomeMonthToDate;
+    [ObservableProperty] private string? _errorMessage;
 
-    [ObservableProperty]
-    private decimal _totalExpensesMonthToDate;
+    /// <summary>True when there are no active programs to display.</summary>
+    [ObservableProperty] private bool _isEmpty;
 
-    [ObservableProperty]
-    private decimal _surplusDeficitMonthToDate;
-
-    [ObservableProperty]
-    private ObservableCollection<JournalEntry> _recentTransactions = new();
+    /// <summary>Friendly message shown in the empty state.</summary>
+    [ObservableProperty] private string _emptyMessage = string.Empty;
 
     public DashboardViewModel(AppDbContext db)
     {
@@ -37,54 +36,128 @@ public partial class DashboardViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadDataAsync()
     {
-        _db.ChangeTracker.Clear();
-        var today = DateTime.Today;
-        var monthStart = new DateTime(today.Year, today.Month, 1);
-        var tomorrow = today.AddDays(1);
+        IsLoading = true;
+        ErrorMessage = null;
+        IsEmpty = false;
+        EmptyMessage = string.Empty;
 
-        // Cash and bank balances — single query per account
-        var cashAccount = await _db.Accounts.FirstOrDefaultAsync(a => a.Code == "1000");
-        var bankAccount = await _db.Accounts.FirstOrDefaultAsync(a => a.Code == "1010");
-
-        if (cashAccount != null)
+        try
         {
-            var debits = await _db.JournalEntryLines
-                .Where(l => l.AccountId == cashAccount.Id)
-                .SumAsync(l => l.DebitAmount);
-            var credits = await _db.JournalEntryLines
-                .Where(l => l.AccountId == cashAccount.Id)
-                .SumAsync(l => l.CreditAmount);
-            CashBalance = debits - credits;
-        }
+            _db.ChangeTracker.Clear();
+            var today = DateTime.Today;
+            var monthStart = new DateTime(today.Year, today.Month, 1);
+            var tomorrow = today.AddDays(1);
 
-        if (bankAccount != null)
+            // Load all active programs
+            var programs = await _db.Programs
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+
+            if (programs.Count == 0)
+            {
+                IsEmpty = true;
+                EmptyMessage = "No programs configured yet.\nGo to Programs in the sidebar to create your first program.";
+                Tiles = new ObservableCollection<DashboardTileViewModel>();
+                return;
+            }
+
+            var programIds = programs.Select(p => p.Id).ToList();
+
+            // Single grouped query for MTD revenue per program
+            var revenueByProgram = await _db.Donations
+                .Where(d => d.Date >= monthStart && d.Date < tomorrow
+                         && programIds.Contains(d.ProgramId))
+                .GroupBy(d => d.ProgramId)
+                .Select(g => new { ProgramId = g.Key, Total = g.Sum(d => d.Amount) })
+                .ToListAsync();
+
+            // Single grouped query for MTD expenses per program
+            var expensesByProgram = await _db.Expenses
+                .Where(e => e.Date >= monthStart && e.Date < tomorrow
+                         && programIds.Contains(e.ProgramId))
+                .GroupBy(e => e.ProgramId)
+                .Select(g => new { ProgramId = g.Key, Total = g.Sum(e => e.Amount) })
+                .ToListAsync();
+
+            var revenueDict = revenueByProgram.ToDictionary(x => x.ProgramId, x => x.Total);
+            var expenseDict = expensesByProgram.ToDictionary(x => x.ProgramId, x => x.Total);
+
+            // Calculate ALL totals
+            var allRevenue = revenueByProgram.Sum(x => x.Total);
+            var allExpenses = expensesByProgram.Sum(x => x.Total);
+
+            var tileList = new List<DashboardTileViewModel>();
+
+            // 1. "ALL" tile first — aggregates everything
+            var allTile = new DashboardTileViewModel(OnTileClicked)
+            {
+                Title = "ALL PROGRAMS",
+                OriginalName = "All Programs",
+                ProgramId = null,
+                IsAllTile = true,
+                RevenueMonthToDate = allRevenue,
+                ExpensesMonthToDate = allExpenses,
+            };
+            allTile.BuildChart();
+            tileList.Add(allTile);
+
+            // 2. One tile per active program
+            foreach (var program in programs)
+            {
+                var rev = revenueDict.GetValueOrDefault(program.Id, 0);
+                var exp = expenseDict.GetValueOrDefault(program.Id, 0);
+
+                var tile = new DashboardTileViewModel(OnTileClicked)
+                {
+                    Title = program.Name.ToUpperInvariant(),
+                    OriginalName = program.Name,
+                    ProgramId = program.Id,
+                    IsAllTile = false,
+                    RevenueMonthToDate = rev,
+                    ExpensesMonthToDate = exp,
+                };
+                tile.BuildChart();
+                tileList.Add(tile);
+            }
+
+            Tiles = new ObservableCollection<DashboardTileViewModel>(tileList);
+        }
+        catch (Exception ex)
         {
-            var debits = await _db.JournalEntryLines
-                .Where(l => l.AccountId == bankAccount.Id)
-                .SumAsync(l => l.DebitAmount);
-            var credits = await _db.JournalEntryLines
-                .Where(l => l.AccountId == bankAccount.Id)
-                .SumAsync(l => l.CreditAmount);
-            BankBalance = debits - credits;
+            ErrorMessage = $"Failed to load dashboard: {ex.Message}";
         }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
 
-        // Income month-to-date
-        TotalIncomeMonthToDate = await _db.Donations
-            .Where(d => d.Date >= monthStart && d.Date < tomorrow)
-            .SumAsync(d => d.Amount);
+    /// <summary>
+    /// Handles a tile click — opens the ProgramDetailWindow for the selected program.
+    /// The detail window shares this VM's DbContext, which is safe because ShowDialog()
+    /// is modal (only one detail window open at a time) and both sides call Clear() before use.
+    /// </summary>
+    private void OnTileClicked(DashboardTileViewModel tile)
+    {
+        try
+        {
+            var programName = tile.IsAllTile ? "All Programs" : tile.OriginalName;
+            var detailVm = new ProgramDetailViewModel(_db, tile.ProgramId, programName);
 
-        // Expenses month-to-date
-        TotalExpensesMonthToDate = await _db.Expenses
-            .Where(e => e.Date >= monthStart && e.Date < tomorrow)
-            .SumAsync(e => e.Amount);
+            var window = new Views.ProgramDetailWindow
+            {
+                DataContext = detailVm,
+                Owner = Application.Current.MainWindow,
+            };
 
-        SurplusDeficitMonthToDate = TotalIncomeMonthToDate - TotalExpensesMonthToDate;
-
-        // Recent transactions
-        var recent = await _db.JournalEntries
-            .OrderByDescending(j => j.Date)
-            .Take(10)
-            .ToListAsync();
-        RecentTransactions = new ObservableCollection<JournalEntry>(recent);
+            window.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Could not open program details:\n\n{ex.Message}", "Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 }
+

@@ -10,6 +10,7 @@
         <converters:StringToBoolConverter x:Key="StringToBoolConverter"/>
         <converters:YearVisibilityConverter x:Key="YearVisibilityConverter"/>
         <converters:ReportTypeVisibilityConverter x:Key="ReportTypeVisibilityConverter"/>
+        <converters:StringToBrushConverter x:Key="StringToBrushConverter"/>
 
         <!-- Global styles -->
         <Style TargetType="Button" x:Key="NavButton">

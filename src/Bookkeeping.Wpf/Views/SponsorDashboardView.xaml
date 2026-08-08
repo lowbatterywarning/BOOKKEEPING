@@ -1,4 +1,4 @@
-<UserControl x:Class="Bookkeeping.Wpf.Views.DashboardView"
+<UserControl x:Class="Bookkeeping.Wpf.Views.SponsorDashboardView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -20,11 +20,9 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Dashboard title -->
-        <TextBlock Grid.Row="0" Text="Dashboard" FontSize="26" FontWeight="Bold"
+        <TextBlock Grid.Row="0" Text="Sponsor Dashboard" FontSize="26" FontWeight="Bold"
                    Foreground="#2c3e50" Margin="0,0,0,4"/>
 
-        <!-- Status messages (error / empty / loading) — mutually exclusive, stacked safely -->
         <StackPanel Grid.Row="1" Margin="0,0,0,8">
             <Border Background="#fce4e4" CornerRadius="6" Padding="10" Margin="0,0,0,8"
                     Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}">
@@ -34,7 +32,7 @@
             <Border Background="White" CornerRadius="8" Padding="30" Margin="0,0,0,8"
                     Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
                 <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="📋" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <TextBlock Text="👥" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10"/>
                     <TextBlock Text="{Binding EmptyMessage}" Foreground="#7f8c8d" FontSize="14"
                                HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
                 </StackPanel>
@@ -42,11 +40,10 @@
 
             <Border Background="#ecf0f1" CornerRadius="6" Padding="10"
                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="Loading dashboard..." Foreground="#7f8c8d" FontSize="13" FontStyle="Italic"/>
+                <TextBlock Text="Loading sponsors..." Foreground="#7f8c8d" FontSize="13" FontStyle="Italic"/>
             </Border>
         </StackPanel>
 
-        <!-- Tiles area -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       PanningMode="VerticalOnly"
@@ -54,18 +51,15 @@
             <ItemsControl ItemsSource="{Binding Tiles}" Margin="0,0,0,4">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal"
-                                   ItemWidth="Auto"
+                        <WrapPanel Orientation="Horizontal" ItemWidth="Auto"
                                    HorizontalAlignment="Stretch"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border MinWidth="280" MaxWidth="540"
-                                Margin="0,0,8,8"
-                                Background="White" CornerRadius="10"
-                                Cursor="Hand">
+                        <Border MinWidth="280" MaxWidth="540" Margin="0,0,8,8"
+                                Background="White" CornerRadius="10" Cursor="Hand">
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Setter Property="BorderThickness" Value="0"/>
@@ -103,19 +97,7 @@
 
                                 <!-- Tile header -->
                                 <Border Grid.Row="0" CornerRadius="10,10,0,0"
-                                        Padding="14,10">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsAllTile}" Value="True">
-                                                    <Setter Property="Background" Value="#2c3e50"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding IsAllTile}" Value="False">
-                                                    <Setter Property="Background" Value="#34495e"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
+                                        Background="#2980b9" Padding="14,10">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -133,8 +115,17 @@
 
                                 <!-- Chart -->
                                 <Border Grid.Row="1" Padding="8,4,8,0">
-                                    <oxy:PlotView Model="{Binding ChartModel}"
-                                                  Background="Transparent"/>
+                                    <Grid>
+                                        <oxy:PlotView Model="{Binding ChartModel}"
+                                                      Background="Transparent"/>
+                                        <!-- Overflow label -->
+                                        <TextBlock Text="{Binding OverflowLabel}"
+                                                   Foreground="#888" FontSize="10"
+                                                   FontStyle="Italic"
+                                                   HorizontalAlignment="Right"
+                                                   VerticalAlignment="Bottom"
+                                                   Margin="0,0,8,4"/>
+                                    </Grid>
                                 </Border>
 
                                 <!-- Summary footer -->
@@ -145,22 +136,20 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Revenue -->
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="REVENUE (MTD)" FontSize="9"
+                                        <TextBlock Text="DONATED (MTD)" FontSize="9"
                                                    Foreground="#888" Margin="0,0,0,1"/>
                                         <TextBlock FontSize="18" FontWeight="Bold"
                                                    Foreground="#27ae60"
-                                                   Text="{Binding RevenueMonthToDate, StringFormat={}{0:C}}"/>
+                                                   Text="{Binding TotalDonatedMonthToDate, StringFormat={}{0:C}}"/>
                                     </StackPanel>
 
-                                    <!-- Expenses -->
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="EXPENSES (MTD)" FontSize="9"
+                                        <TextBlock Text="TARGETS" FontSize="9"
                                                    Foreground="#888" Margin="0,0,0,1"/>
                                         <TextBlock FontSize="18" FontWeight="Bold"
-                                                   Foreground="#c0392b"
-                                                   Text="{Binding ExpensesMonthToDate, StringFormat={}{0:C}}"/>
+                                                   Foreground="#2980b9"
+                                                   Text="{Binding TargetSummary}"/>
                                     </StackPanel>
                                 </Grid>
                             </Grid>
@@ -171,4 +160,3 @@
         </ScrollViewer>
     </Grid>
 </UserControl>
-

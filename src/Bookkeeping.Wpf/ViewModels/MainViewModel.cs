@@ -8,14 +8,14 @@ namespace Bookkeeping.Wpf.ViewModels;
 /// </summary>
 public partial class MainViewModel : ObservableObject
 {
-    [ObservableProperty]
-    private object? _currentView;
+    [ObservableProperty] private object? _currentView;
 
     [ObservableProperty]
     private string _windowTitle = "Bookkeeping";
 
     // Sub-ViewModels (lazy-loaded via DI)
     public DashboardViewModel Dashboard { get; }
+    public SponsorDashboardViewModel SponsorDashboard { get; }
     public SponsorsViewModel Sponsors { get; }
     public IncomeViewModel Income { get; }
     public ExpensesViewModel Expenses { get; }
@@ -31,6 +31,7 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel(
         DashboardViewModel dashboard,
+        SponsorDashboardViewModel sponsorDashboard,
         SponsorsViewModel sponsors,
         IncomeViewModel income,
         ExpensesViewModel expenses,
@@ -42,6 +43,7 @@ public partial class MainViewModel : ObservableObject
         SettingsViewModel settings)
     {
         Dashboard = dashboard;
+        SponsorDashboard = sponsorDashboard;
         Sponsors = sponsors;
         Income = income;
         Expenses = expenses;
@@ -58,6 +60,9 @@ public partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private void NavigateToDashboard() => CurrentView = Dashboard;
+
+    [RelayCommand]
+    private void NavigateToSponsorDashboard() => CurrentView = SponsorDashboard;
 
     [RelayCommand]
     private void NavigateToSponsors() => CurrentView = Sponsors;

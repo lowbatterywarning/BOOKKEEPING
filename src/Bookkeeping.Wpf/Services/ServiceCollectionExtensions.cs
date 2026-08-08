@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
         // ViewModels
         services.AddTransient<ViewModels.DashboardViewModel>();
         services.AddTransient<ViewModels.SponsorsViewModel>();
+        services.AddTransient<ViewModels.SponsorDashboardViewModel>();
         services.AddTransient<ViewModels.IncomeViewModel>();
         services.AddTransient<ViewModels.ExpensesViewModel>();
         services.AddTransient<ViewModels.ProgramsViewModel>();
