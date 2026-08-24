@@ -73,7 +73,7 @@ public class JournalEngine : IJournalEngine
 
         entry.Lines.Add(new JournalEntryLine
         {
-            AccountId = incomeAccount.Id,
+            Account = incomeAccount,
             DebitAmount = 0,
             CreditAmount = donation.Amount,
             FundId = program.FundId,
@@ -121,7 +121,7 @@ public class JournalEngine : IJournalEngine
 
         entry.Lines.Add(new JournalEntryLine
         {
-            AccountId = expenseAccount.Id,
+            Account = expenseAccount,
             DebitAmount = expense.Amount,
             CreditAmount = 0,
             FundId = fundId,
@@ -389,6 +389,7 @@ public class JournalEngine : IJournalEngine
         };
 
         _db.Accounts.Add(account);
+        program.IncomeAccount = account;
         return account;
     }
 
@@ -414,6 +415,7 @@ public class JournalEngine : IJournalEngine
         };
 
         _db.Accounts.Add(account);
+        program.ExpenseAccount = account;
         return account;
     }
 
