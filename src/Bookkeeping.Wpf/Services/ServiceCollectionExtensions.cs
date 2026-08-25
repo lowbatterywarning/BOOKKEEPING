@@ -25,6 +25,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ExportService>();
         services.AddScoped<AuditService>();
         services.AddScoped<BackupService>(_ => new BackupService(dbPath, attachmentsPath));
+        services.AddSingleton<AutoBackupService>(_ => new AutoBackupService(dbPath));
         services.AddScoped<DatabaseInitializer>();
 
         // ViewModels
