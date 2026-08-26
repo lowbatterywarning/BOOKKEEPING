@@ -50,7 +50,6 @@ public partial class ProgramDetailViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadAsync()
     {
-        _db.ChangeTracker.Clear();
         await LoadTransactionsAsync();
         _isLoaded = true;
         BuildChart();
@@ -86,6 +85,7 @@ public partial class ProgramDetailViewModel : ObservableObject
 
         // Load donations
         IQueryable<Donation> donationQuery = _db.Donations
+            .AsNoTracking()
             .Include(d => d.Sponsor)
             .Include(d => d.Program);
         if (_programId.HasValue)
@@ -98,6 +98,7 @@ public partial class ProgramDetailViewModel : ObservableObject
 
         // Load expenses
         IQueryable<Expense> expenseQuery = _db.Expenses
+            .AsNoTracking()
             .Include(e => e.Program);
         if (_programId.HasValue)
             expenseQuery = expenseQuery.Where(e => e.ProgramId == _programId.Value);
@@ -170,7 +171,7 @@ public partial class ProgramDetailViewModel : ObservableObject
         TotalExpenses = expenses;
         NetAmount = revenue - expenses;
 
-        var periodLabel = ShowCurrentMonth ? today.ToString("MMMM yyyy") : today.ToString("yyyy");
+        var periodLabel = ShowCurrentMonth ? today.ToString("MMMM yyyy") : $"{today.Year} YTD";
 
         ChartModel = ChartHelper.CreateRevenueExpenseChart(
             revenue, expenses,

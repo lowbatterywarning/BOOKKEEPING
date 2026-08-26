@@ -18,6 +18,9 @@ public partial class DashboardViewModel : ObservableObject
 
     [ObservableProperty] private ObservableCollection<DashboardTileViewModel> _tiles = new();
 
+    /// <summary>Number of tile columns to display, computed from the available width.</summary>
+    [ObservableProperty] private int _tileColumns = 3;
+
     [ObservableProperty] private bool _isLoading;
 
     [ObservableProperty] private string? _errorMessage;
@@ -43,13 +46,13 @@ public partial class DashboardViewModel : ObservableObject
 
         try
         {
-            _db.ChangeTracker.Clear();
             var today = DateTime.Today;
             var monthStart = new DateTime(today.Year, today.Month, 1);
             var tomorrow = today.AddDays(1);
 
             // Load all active programs
             var programs = await _db.Programs
+                .AsNoTracking()
                 .Where(p => p.IsActive)
                 .OrderBy(p => p.Name)
                 .ToListAsync();
@@ -66,6 +69,7 @@ public partial class DashboardViewModel : ObservableObject
 
             // Single grouped query for MTD revenue per program
             var revenueByProgram = await _db.Donations
+                .AsNoTracking()
                 .Where(d => d.Date >= monthStart && d.Date < tomorrow
                          && programIds.Contains(d.ProgramId))
                 .GroupBy(d => d.ProgramId)
@@ -74,6 +78,7 @@ public partial class DashboardViewModel : ObservableObject
 
             // Single grouped query for MTD expenses per program
             var expensesByProgram = await _db.Expenses
+                .AsNoTracking()
                 .Where(e => e.Date >= monthStart && e.Date < tomorrow
                          && programIds.Contains(e.ProgramId))
                 .GroupBy(e => e.ProgramId)
@@ -125,6 +130,7 @@ public partial class DashboardViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            Tiles = new ObservableCollection<DashboardTileViewModel>();
             ErrorMessage = $"Failed to load dashboard: {ex.Message}";
         }
         finally
