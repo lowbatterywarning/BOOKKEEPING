@@ -34,7 +34,6 @@
                         <GridView>
                             <GridViewColumn Header="Date" Width="90" DisplayMemberBinding="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}"/>
                             <GridViewColumn Header="Sponsor" Width="130" DisplayMemberBinding="{Binding Sponsor.Name}"/>
-                            <GridViewColumn Header="Category" Width="100" DisplayMemberBinding="{Binding DonationCategory.Name}"/>
                             <GridViewColumn Header="Method" Width="70" DisplayMemberBinding="{Binding PaymentMethod}"/>
                             <GridViewColumn Header="Amount" Width="90">
                                 <GridViewColumn.CellTemplate>
@@ -54,7 +53,6 @@
                         <GridView>
                             <GridViewColumn Header="Date" Width="90" DisplayMemberBinding="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}"/>
                             <GridViewColumn Header="Vendor" Width="130" DisplayMemberBinding="{Binding VendorName}"/>
-                            <GridViewColumn Header="Category" Width="110" DisplayMemberBinding="{Binding ExpenseCategory.Name}"/>
                             <GridViewColumn Header="Amount" Width="90">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>

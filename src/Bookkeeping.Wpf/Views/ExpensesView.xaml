@@ -11,8 +11,6 @@
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <converters:StringToBoolConverter x:Key="StringToBoolConverter"/>
-        <converters:BoolToOpacityConverter x:Key="BoolToOpacityConverter"/>
-        <converters:ActiveToLabelConverter x:Key="ActiveToLabelConverter"/>
     </UserControl.Resources>
 
     <Grid Margin="10">
@@ -27,8 +25,6 @@
             <TextBlock Text="Expenses" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
             <Button Content="+ Record Expense" Width="140" Background="#c0392b" Foreground="White"
                     FontWeight="SemiBold" Margin="20,0,0,0" Command="{Binding ShowAddFormCommand}"/>
-            <Button Content="Manage Categories" Width="130" Background="#8e44ad" Foreground="White"
-                    FontWeight="SemiBold" Margin="8,0,0,0" Command="{Binding ShowAddCategoryCommand}"/>
             <Button Content="Clear Filters" Width="100" Margin="8,0,0,0" Command="{Binding ClearFiltersCommand}"/>
         </StackPanel>
 
@@ -42,11 +38,6 @@
                 <StackPanel Margin="0,0,10,0">
                     <TextBlock Text="To" FontSize="11" Foreground="Gray"/>
                     <DatePicker SelectedDate="{Binding FilterDateTo}" Width="130"/>
-                </StackPanel>
-                <StackPanel Margin="0,0,10,0" Width="160">
-                    <TextBlock Text="Category" FontSize="11" Foreground="Gray"/>
-                    <ComboBox ItemsSource="{Binding AllCategories}" SelectedItem="{Binding FilterCategory}"
-                              DisplayMemberPath="Name"/>
                 </StackPanel>
                 <StackPanel Width="160">
                     <TextBlock Text="Program" FontSize="11" Foreground="Gray"/>
@@ -89,11 +80,6 @@
                         <TextBlock Text="Payment" FontWeight="SemiBold"/>
                         <ComboBox ItemsSource="{Binding PaymentMethods}" SelectedItem="{Binding NewPaymentMethod}"/>
                     </StackPanel>
-                    <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,0,6">
-                        <TextBlock Text="Category *" FontWeight="SemiBold"/>
-                        <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding NewCategory}"
-                                  DisplayMemberPath="Name"/>
-                    </StackPanel>
 
                     <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
                         <TextBlock Text="Program" FontWeight="SemiBold"/>
@@ -124,76 +110,12 @@
             </StackPanel>
         </Border>
 
-        <!-- Add Category Form -->
-        <Border Grid.Row="2" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,8"
-                Visibility="{Binding IsAddingCategory, Converter={StaticResource BoolToVisibilityConverter}}">
-            <StackPanel>
-                <TextBlock Text="Manage Expense Categories" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                <TextBlock Text="{Binding CategoryErrorMessage}" Foreground="Red" Margin="0,0,0,6"
-                           Visibility="{Binding CategoryErrorMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
-
-                <!-- Existing categories -->
-                <TextBlock Text="Existing Categories" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                <ItemsControl ItemsSource="{Binding AllCategories}" MaxHeight="200">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="0,1">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="150"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="55"/>
-                                    <ColumnDefinition Width="85"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
-                                           Opacity="{Binding IsActive, Converter={StaticResource BoolToOpacityConverter}, FallbackValue=1}"/>
-                                <TextBlock Grid.Column="1" Text="{Binding Description}" VerticalAlignment="Center"
-                                           FontSize="11" Foreground="Gray" TextTrimming="CharacterEllipsis"/>
-                                <Button Grid.Column="2" Content="Edit" Width="50" Height="24" FontSize="11"
-                                        Command="{Binding DataContext.EditCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding}"/>
-                                <Button Grid.Column="3" Content="{Binding IsActive, Converter={StaticResource ActiveToLabelConverter}}"
-                                        Width="80" Height="24" FontSize="11"
-                                        Command="{Binding DataContext.ToggleCategoryActiveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding}"/>
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <Separator Margin="0,8"/>
-
-                <!-- Add new category -->
-                <TextBlock Text="Add New Category" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                        <TextBlock Text="Category Name *" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding NewCategoryName, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="Description" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding NewCategoryDescription, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
-                </Grid>
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                    <Button Content="Save Category" Width="110" Background="#8e44ad" Foreground="White"
-                            Command="{Binding SaveCategoryCommand}"/>
-                    <Button Content="Cancel" Width="80" Margin="8,0,0,0"
-                            Command="{Binding CancelAddCategoryCommand}"/>
-                </StackPanel>
-            </StackPanel>
-        </Border>
-
         <!-- Expenses List -->
         <ListView Grid.Row="3" ItemsSource="{Binding Expenses}">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="Date" Width="90" DisplayMemberBinding="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}"/>
                     <GridViewColumn Header="Vendor" Width="130" DisplayMemberBinding="{Binding VendorName}"/>
-                    <GridViewColumn Header="Category" Width="110" DisplayMemberBinding="{Binding ExpenseCategory.Name}"/>
                     <GridViewColumn Header="Method" Width="70" DisplayMemberBinding="{Binding PaymentMethod}"/>
                     <GridViewColumn Header="Program" Width="100" DisplayMemberBinding="{Binding Program.Name}"/>
                     <GridViewColumn Header="Amount" Width="90">

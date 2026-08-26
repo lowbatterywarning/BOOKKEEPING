@@ -3,8 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:oxy="http://oxyplot.org/wpf"
-             xmlns:converters="clr-namespace:Bookkeeping.Wpf.Converters"
+                          xmlns:converters="clr-namespace:Bookkeeping.Wpf.Converters"
              mc:Ignorable="d" d:DesignHeight="650" d:DesignWidth="1000"
              Loaded="UserControl_Loaded">
 
@@ -21,21 +20,12 @@
             <TextBlock Text="Reports" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
 
             <TextBlock Text="Report Type:" VerticalAlignment="Center" Margin="20,0,6,0" FontWeight="SemiBold"/>
-            <ComboBox ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}" Width="130"/>
+                        <ComboBox ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}" Width="130"/>
 
-            <TextBlock Text="Year:" VerticalAlignment="Center" Margin="10,0,6,0" FontWeight="SemiBold"
-                       Visibility="{Binding SelectedReportType, Converter={StaticResource YearVisibilityConverter}}"/>
-            <TextBox Text="{Binding SelectedYear, UpdateSourceTrigger=PropertyChanged}" Width="70"
-                     Visibility="{Binding SelectedReportType, Converter={StaticResource YearVisibilityConverter}}"/>
-
-            <Button Content="Generate" Width="90" Background="#2980b9" Foreground="White" Margin="10,0,0,0"
-                    Command="{Binding GenerateReportCommand}"/>
-            <Button Content="Export Excel" Width="100" Background="#27ae60" Foreground="White" Margin="6,0,0,0"
-                    Command="{Binding ExportToExcelCommand}"/>
-            <Button Content="Export PDF" Width="90" Background="#c0392b" Foreground="White" Margin="6,0,0,0"
-                    Command="{Binding ExportToPdfCommand}"/>
-            <Button Content="Clear Filters" Width="90" Margin="6,0,0,0"
-                    Command="{Binding ClearFiltersCommand}"/>
+                        <Button Content="Generate" Width="90" Background="#2980b9" Foreground="White" Margin="10,0,0,0"
+                                Command="{Binding GenerateReportCommand}"/>
+                        <Button Content="Clear Filters" Width="90" Margin="6,0,0,0"
+                                Command="{Binding ClearFiltersCommand}"/>
         </StackPanel>
 
         <!-- Filters -->
@@ -54,14 +44,6 @@
                     <ComboBox ItemsSource="{Binding Sponsors}" SelectedItem="{Binding FilterSponsor}" DisplayMemberPath="Name"/>
                 </StackPanel>
                 <StackPanel Margin="0,0,8,0" Width="150">
-                    <TextBlock Text="Donation Category" FontSize="10" Foreground="Gray"/>
-                    <ComboBox ItemsSource="{Binding DonationCategories}" SelectedItem="{Binding FilterDonationCategory}" DisplayMemberPath="Name"/>
-                </StackPanel>
-                <StackPanel Margin="0,0,8,0" Width="150">
-                    <TextBlock Text="Expense Category" FontSize="10" Foreground="Gray"/>
-                    <ComboBox ItemsSource="{Binding ExpenseCategories}" SelectedItem="{Binding FilterExpenseCategory}" DisplayMemberPath="Name"/>
-                </StackPanel>
-                <StackPanel Margin="0,0,8,0" Width="130">
                     <TextBlock Text="Program" FontSize="10" Foreground="Gray"/>
                     <ComboBox ItemsSource="{Binding Programs}" SelectedItem="{Binding FilterProgram}" DisplayMemberPath="Name"/>
                 </StackPanel>
@@ -86,8 +68,7 @@
                     <GridView>
                         <GridViewColumn Header="Date" Width="90" DisplayMemberBinding="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}"/>
                         <GridViewColumn Header="Sponsor" Width="140" DisplayMemberBinding="{Binding Sponsor}"/>
-                        <GridViewColumn Header="Category" Width="110" DisplayMemberBinding="{Binding Category}"/>
-                        <GridViewColumn Header="Method" Width="70" DisplayMemberBinding="{Binding PaymentMethod}"/>
+                                                <GridViewColumn Header="Method" Width="70" DisplayMemberBinding="{Binding PaymentMethod}"/>
                         <GridViewColumn Header="Program" Width="110" DisplayMemberBinding="{Binding Program}"/>
                         <GridViewColumn Header="Amount" Width="90">
                             <GridViewColumn.CellTemplate>
@@ -107,8 +88,7 @@
                     <GridView>
                         <GridViewColumn Header="Date" Width="90" DisplayMemberBinding="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}"/>
                         <GridViewColumn Header="Vendor" Width="140" DisplayMemberBinding="{Binding Vendor}"/>
-                        <GridViewColumn Header="Category" Width="110" DisplayMemberBinding="{Binding Category}"/>
-                        <GridViewColumn Header="Method" Width="70" DisplayMemberBinding="{Binding PaymentMethod}"/>
+                                                <GridViewColumn Header="Method" Width="70" DisplayMemberBinding="{Binding PaymentMethod}"/>
                         <GridViewColumn Header="Program" Width="110" DisplayMemberBinding="{Binding Program}"/>
                         <GridViewColumn Header="Amount" Width="90">
                             <GridViewColumn.CellTemplate>
@@ -121,344 +101,7 @@
                     </GridView>
                 </ListView.View>
             </ListView>
-
-            <ListView Grid.Row="0" ItemsSource="{Binding ProgramReport}"
-                      Visibility="{Binding SelectedReportType, Converter={StaticResource ReportTypeVisibilityConverter}, ConverterParameter=Program}">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Program" Width="200" DisplayMemberBinding="{Binding Program}"/>
-                        <GridViewColumn Header="Income" Width="110">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Income, StringFormat={}{0:C}}" HorizontalAlignment="Right" Foreground="#27ae60"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Expenses" Width="110">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Expenses, StringFormat={}{0:C}}" HorizontalAlignment="Right" Foreground="#c0392b"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Balance" Width="110">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Balance, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="SemiBold"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                    </GridView>
-                </ListView.View>
-            </ListView>
-
-            <ListView Grid.Row="0" ItemsSource="{Binding MonthlyReport}"
-                      Visibility="{Binding SelectedReportType, Converter={StaticResource ReportTypeVisibilityConverter}, ConverterParameter=Monthly}">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Month" Width="100" DisplayMemberBinding="{Binding Month}"/>
-                        <GridViewColumn Header="Revenue" Width="100">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Income, StringFormat={}{0:C}}" HorizontalAlignment="Right" Foreground="#27ae60"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Expenses" Width="100">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Expenses, StringFormat={}{0:C}}" HorizontalAlignment="Right" Foreground="#c0392b"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Net" Width="100">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Net, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="SemiBold"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Cash" Width="100">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding CashBalance, StringFormat={}{0:C}}" HorizontalAlignment="Right"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Bank" Width="100">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding BankBalance, StringFormat={}{0:C}}" HorizontalAlignment="Right"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                    </GridView>
-                </ListView.View>
-            </ListView>
-
-            <ListView Grid.Row="0" ItemsSource="{Binding FundReport}"
-                      Visibility="{Binding SelectedReportType, Converter={StaticResource ReportTypeVisibilityConverter}, ConverterParameter=Fund}">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Fund" Width="180" DisplayMemberBinding="{Binding FundName}"/>
-                        <GridViewColumn Header="Type" Width="100" DisplayMemberBinding="{Binding TypeDisplay}"/>
-                        <GridViewColumn Header="Income" Width="110">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Income, StringFormat={}{0:C}}" HorizontalAlignment="Right" Foreground="#27ae60"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Expenses" Width="110">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Expenses, StringFormat={}{0:C}}" HorizontalAlignment="Right" Foreground="#c0392b"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Net Balance" Width="120">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding NetBalance, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="SemiBold"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                    </GridView>
-                </ListView.View>
-            </ListView>
-
-            <ListView Grid.Row="0" ItemsSource="{Binding SponsorReport}"
-                      Visibility="{Binding SelectedReportType, Converter={StaticResource ReportTypeVisibilityConverter}, ConverterParameter=Sponsor}">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Date" Width="100" DisplayMemberBinding="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}"/>
-                        <GridViewColumn Header="Category" Width="150" DisplayMemberBinding="{Binding Category}"/>
-                        <GridViewColumn Header="Amount" Width="110">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Amount, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="SemiBold"/>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Receipt #" Width="120" DisplayMemberBinding="{Binding ReceiptNumber}"/>
-                    </GridView>
-                </ListView.View>
-            </ListView>
-
-            <!-- Statement of Activities -->
-            <Grid Grid.Row="0" Visibility="{Binding SelectedReportType, Converter={StaticResource ReportTypeVisibilityConverter}, ConverterParameter=Statement of Activities}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <TextBlock Text="Statement of Activities" FontSize="20" FontWeight="Bold" Margin="0,0,0,4"/>
-                        <TextBlock FontSize="13" Foreground="Gray" Margin="0,0,0,12">
-                            <Run Text="For the Year Ended December 31, "/><Run Text="{Binding IncomeStatement.Year}"/>
-                        </TextBlock>
-
-                        <!-- Summary cards -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Background="#e8f5e9" CornerRadius="6" Padding="12" Margin="0,0,8,0">
-                                <StackPanel>
-                                    <TextBlock Text="TOTAL REVENUE" FontSize="11" Foreground="#2e7d32"/>
-                                    <TextBlock Text="{Binding IncomeStatement.TotalRevenue, StringFormat={}{0:C}}" FontSize="22" FontWeight="Bold" Foreground="#2e7d32"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="1" Background="#ffebee" CornerRadius="6" Padding="12" Margin="0,0,8,0">
-                                <StackPanel>
-                                    <TextBlock Text="TOTAL EXPENSES" FontSize="11" Foreground="#c62828"/>
-                                    <TextBlock Text="{Binding IncomeStatement.TotalExpenses, StringFormat={}{0:C}}" FontSize="22" FontWeight="Bold" Foreground="#c62828"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="2" Background="#e3f2fd" CornerRadius="6" Padding="12">
-                                <StackPanel>
-                                    <TextBlock Text="CHANGE IN NET ASSETS" FontSize="11" Foreground="#1565c0"/>
-                                    <TextBlock Text="{Binding IncomeStatement.NetIncome, StringFormat={}{0:C}}" FontSize="22" FontWeight="Bold" Foreground="#1565c0"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-
-                        <!-- Revenue section -->
-                        <TextBlock Text="REVENUE" FontSize="15" FontWeight="SemiBold" Foreground="#2e7d32" Margin="0,8,0,4"/>
-                        <Border Background="White" CornerRadius="6" Padding="10">
-                            <StackPanel>
-                            <ItemsControl ItemsSource="{Binding IncomeStatement.RevenueByCategory}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,3">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="120"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Category}" Foreground="#333"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Amount, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#2e7d32"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <Border BorderBrush="#e0e0e0" BorderThickness="0,1,0,0" Margin="0,4" Padding="0,4,0,0">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="120"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Total Revenue" FontWeight="Bold" Foreground="#2e7d32"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding IncomeStatement.TotalRevenue, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="Bold" Foreground="#2e7d32"/>
-                                </Grid>
-                            </Border>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Expenses section -->
-                        <TextBlock Text="EXPENSES" FontSize="15" FontWeight="SemiBold" Foreground="#c62828" Margin="0,14,0,4"/>
-                        <Border Background="White" CornerRadius="6" Padding="10">
-                            <StackPanel>
-                            <ItemsControl ItemsSource="{Binding IncomeStatement.ExpensesByCategory}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,3">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="120"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Category}" Foreground="#333"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Amount, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#c62828"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <Border BorderBrush="#e0e0e0" BorderThickness="0,1,0,0" Margin="0,4" Padding="0,4,0,0">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="120"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Total Expenses" FontWeight="Bold" Foreground="#c62828"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding IncomeStatement.TotalExpenses, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="Bold" Foreground="#c62828"/>
-                                </Grid>
-                            </Border>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Change in Net Assets -->
-                        <Border Background="#e3f2fd" CornerRadius="6" Padding="10" Margin="0,10,0,0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="120"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="CHANGE IN NET ASSETS" FontWeight="Bold" FontSize="13" Foreground="#1565c0"/>
-                                <TextBlock Grid.Column="1" Text="{Binding IncomeStatement.NetIncome, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="Bold" FontSize="14" Foreground="#1565c0"/>
-                            </Grid>
-                        </Border>
-
-                        <!-- Revenue by Fund -->
-                        <TextBlock Text="Revenue by Fund" FontSize="13" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                        <Border Background="White" CornerRadius="6" Padding="10">
-                            <ItemsControl ItemsSource="{Binding IncomeStatement.RevenueByFund}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,2">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="120"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Category}" Foreground="#333"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Amount, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#2e7d32"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Border>
-
-                        <!-- Monthly Breakdown -->
-                        <TextBlock Text="Monthly Breakdown" FontSize="13" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                        <ListView ItemsSource="{Binding IncomeStatement.MonthlyBreakdown}" MaxHeight="300" Background="White">
-                            <ListView.View>
-                                <GridView>
-                                    <GridViewColumn Header="Month" Width="120" DisplayMemberBinding="{Binding Month}"/>
-                                    <GridViewColumn Header="Revenue" Width="120">
-                                        <GridViewColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Revenue, StringFormat={}{0:C}}" HorizontalAlignment="Right" Foreground="#27ae60" FontWeight="SemiBold"/>
-                                            </DataTemplate>
-                                        </GridViewColumn.CellTemplate>
-                                    </GridViewColumn>
-                                    <GridViewColumn Header="Expenses" Width="120">
-                                        <GridViewColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Expenses, StringFormat={}{0:C}}" HorizontalAlignment="Right" Foreground="#c0392b" FontWeight="SemiBold"/>
-                                            </DataTemplate>
-                                        </GridViewColumn.CellTemplate>
-                                    </GridViewColumn>
-                                    <GridViewColumn Header="Net" Width="120">
-                                        <GridViewColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Net, StringFormat={}{0:C}}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#1565c0"/>
-                                            </DataTemplate>
-                                        </GridViewColumn.CellTemplate>
-                                    </GridViewColumn>
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-                    </StackPanel>
-                </ScrollViewer>
-            </Grid>
-
-            <!-- Annual Report -->
-            <Grid Grid.Row="0" Visibility="{Binding SelectedReportType, Converter={StaticResource ReportTypeVisibilityConverter}, ConverterParameter=Annual}">
-                <StackPanel>
-                    <TextBlock FontSize="16" FontWeight="Bold" Margin="0,0,0,6">
-                        <Run Text="Annual Report — "/><Run Text="{Binding AnnualReport.Year}"/>
-                    </TextBlock>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200"/>
-                            <ColumnDefinition Width="200"/>
-                            <ColumnDefinition Width="200"/>
-                        </Grid.ColumnDefinitions>
-                        <Border Background="#e8f5e9" CornerRadius="6" Padding="12" Margin="0,0,10,0">
-                            <StackPanel>
-                                <TextBlock Text="TOTAL REVENUE" FontSize="11" Foreground="#2e7d32"/>
-                                <TextBlock Text="{Binding AnnualReport.TotalIncome, StringFormat={}{0:C}}" FontSize="22" FontWeight="Bold" Foreground="#2e7d32"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="1" Background="#ffebee" CornerRadius="6" Padding="12" Margin="0,0,10,0">
-                            <StackPanel>
-                                <TextBlock Text="TOTAL EXPENSES" FontSize="11" Foreground="#c62828"/>
-                                <TextBlock Text="{Binding AnnualReport.TotalExpenses, StringFormat={}{0:C}}" FontSize="22" FontWeight="Bold" Foreground="#c62828"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="2" Background="#fff3e0" CornerRadius="6" Padding="12">
-                            <StackPanel>
-                                <TextBlock Text="NET" FontSize="11" Foreground="#e65100"/>
-                                <TextBlock Text="{Binding AnnualReport.Net, StringFormat={}{0:C}}" FontSize="22" FontWeight="Bold" Foreground="#e65100"/>
-                            </StackPanel>
-                        </Border>
                     </Grid>
-                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <Border Background="#e3f2fd" CornerRadius="6" Padding="10" Margin="0,0,10,0">
-                            <StackPanel>
-                                <TextBlock Text="Cash Year-End" FontSize="11" Foreground="Gray"/>
-                                <TextBlock Text="{Binding AnnualReport.CashBalance, StringFormat={}{0:C}}" FontSize="16" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Background="#e3f2fd" CornerRadius="6" Padding="10">
-                            <StackPanel>
-                                <TextBlock Text="Bank Year-End" FontSize="11" Foreground="Gray"/>
-                                <TextBlock Text="{Binding AnnualReport.BankBalance, StringFormat={}{0:C}}" FontSize="16" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
-
-            <!-- OxyPlot Chart -->
-            <oxy:PlotView Grid.Row="1" Model="{Binding ChartModel}" Margin="0,6,0,0"/>
-        </Grid>
 
         <!-- Status Bar -->
         <Border Grid.Row="3" Background="#2c3e50" CornerRadius="4" Padding="8,4" Margin="0,4,0,0">

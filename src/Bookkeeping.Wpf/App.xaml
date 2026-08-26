@@ -8,8 +8,7 @@
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <converters:InvertBoolConverter x:Key="InvertBoolConverter"/>
         <converters:StringToBoolConverter x:Key="StringToBoolConverter"/>
-        <converters:YearVisibilityConverter x:Key="YearVisibilityConverter"/>
-        <converters:ReportTypeVisibilityConverter x:Key="ReportTypeVisibilityConverter"/>
+                <converters:ReportTypeVisibilityConverter x:Key="ReportTypeVisibilityConverter"/>
         <converters:StringToBrushConverter x:Key="StringToBrushConverter"/>
 
         <!-- Global styles -->

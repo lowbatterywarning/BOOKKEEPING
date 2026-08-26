@@ -56,17 +56,6 @@ public class StringToBoolConverter : IValueConverter
     }
 }
 
-public class YearVisibilityConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        var type = value as string;
-        return (type == "Monthly" || type == "Annual" || type == "Statement of Activities") ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
-}
-
 public class ReportTypeVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

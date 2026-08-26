@@ -39,12 +39,12 @@ public class IntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task Schema_IncomeAccountId_OnDonationCategories()
+    public async Task Schema_IncomeAccountId_OnPrograms()
     {
         var conn = _db.Database.GetDbConnection();
         await conn.OpenAsync();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "PRAGMA table_info(DonationCategories)";
+        cmd.CommandText = "PRAGMA table_info(Programs)";
         var columns = new List<string>();
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync()) columns.Add(reader.GetString(1));
@@ -77,13 +77,13 @@ public class IntegrationTests : IDisposable
         _db.Accounts.Add(incAcct);
         await SaveAsync();
 
-        var cat = new DonationCategory { Name = "Zekat", FundId = zekatFund.Id, IncomeAccount = incAcct };
-        _db.DonationCategories.Add(cat);
+        var program = new OrgProgram { Name = "Zekat", FundId = zekatFund.Id, IncomeAccount = incAcct };
+        _db.Programs.Add(program);
         var sponsor = new Sponsor { Name = "Donor" };
         _db.Sponsors.Add(sponsor);
         await SaveAsync();
 
-        _db.SponsorTargets.Add(new SponsorTarget { SponsorId = sponsor.Id, DonationCategoryId = cat.Id, TargetAmount = 500 });
+        _db.SponsorTargets.Add(new SponsorTarget { SponsorId = sponsor.Id, ProgramId = program.Id, TargetAmount = 500 });
         await SaveAsync();
 
         var target = await _db.SponsorTargets.FirstAsync(t => t.SponsorId == sponsor.Id);
@@ -105,10 +105,9 @@ public class IntegrationTests : IDisposable
         _db.Accounts.AddRange(incAcct, expAcct);
         await SaveAsync();
 
-        var dCat = new DonationCategory { Name = "Giving", FundId = fund.Id, IncomeAccount = incAcct };
-        var eCat = new ExpenseCategory { Name = "Costs", FundId = fund.Id, ExpenseAccount = expAcct };
-        _db.DonationCategories.Add(dCat);
-        _db.ExpenseCategories.Add(eCat);
+        var dProg = new OrgProgram { Name = "Giving", FundId = fund.Id, IncomeAccount = incAcct };
+        var eProg = new OrgProgram { Name = "Costs", FundId = fund.Id, ExpenseAccount = expAcct };
+        _db.Programs.AddRange(dProg, eProg);
         var sponsor = new Sponsor { Name = "Donor" };
         _db.Sponsors.Add(sponsor);
         await SaveAsync();
@@ -121,7 +120,7 @@ public class IntegrationTests : IDisposable
         await engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.Today, SponsorId = sponsor.Id, PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = dCat.Id, Amount = 3000m, CreatedByUserId = 1
+            ProgramId = dProg.Id, Amount = 3000m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -129,7 +128,7 @@ public class IntegrationTests : IDisposable
         await engine.RecordExpenseAsync(new Expense
         {
             Date = DateTime.Today, VendorName = "Vendor", PaymentMethod = PaymentMethod.Cash,
-            ExpenseCategoryId = eCat.Id, Amount = 1000m, CreatedByUserId = 1
+            ProgramId = eProg.Id, Amount = 1000m, CreatedByUserId = 1
         });
         await SaveAsync();
 

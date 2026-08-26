@@ -57,8 +57,6 @@ public class JournalEngineTests : IDisposable
         _db.CashBankTransfers.RemoveRange(_db.CashBankTransfers);
         _db.Donations.RemoveRange(_db.Donations);
         _db.Expenses.RemoveRange(_db.Expenses);
-        _db.DonationCategories.RemoveRange(_db.DonationCategories);
-        _db.ExpenseCategories.RemoveRange(_db.ExpenseCategories);
         _db.JournalEntryLines.RemoveRange(_db.JournalEntryLines);
         _db.JournalEntries.RemoveRange(_db.JournalEntries);
         _db.Accounts.RemoveRange(_db.Accounts);
@@ -87,29 +85,27 @@ public class JournalEngineTests : IDisposable
             new Account { Id = 106, Code = "5001", Name = "Expense - Rent", AccountType = AccountType.Expense }
         );
 
-        // Donation categories
-        _db.DonationCategories.AddRange(
-            new DonationCategory { Id = 20, Name = "Himmet", FundId = 10 },
-            new DonationCategory { Id = 21, Name = "Zekat", FundId = 11 }
+        // Programs (income/expense tracking)
+        _db.Programs.AddRange(
+            new OrgProgram { Id = 20, Name = "Himmet", FundId = 10 },
+            new OrgProgram { Id = 21, Name = "Zekat", FundId = 11 },
+            new OrgProgram { Id = 30, Name = "Rent", FundId = 10 }
         );
-
-        // Expense categories
-        _db.ExpenseCategories.Add(new ExpenseCategory { Id = 30, Name = "Rent", FundId = 10 });
 
         // Sponsor
         _db.Sponsors.Add(new Sponsor { Id = 40, Name = "Test Donor" });
 
         await _db.SaveChangesAsync();
 
-        // Link income accounts to categories
-        var himmetCat = await _db.DonationCategories.FindAsync(20);
-        himmetCat!.IncomeAccount = await _db.Accounts.FindAsync(104);
-        var zekatCat = await _db.DonationCategories.FindAsync(21);
-        zekatCat!.IncomeAccount = await _db.Accounts.FindAsync(105);
+        // Link income accounts to programs
+        var himmetProg = await _db.Programs.FindAsync(20);
+        himmetProg!.IncomeAccount = await _db.Accounts.FindAsync(104);
+        var zekatProg = await _db.Programs.FindAsync(21);
+        zekatProg!.IncomeAccount = await _db.Accounts.FindAsync(105);
 
-        // Link expense account to category
-        var rentCat = await _db.ExpenseCategories.FindAsync(30);
-        rentCat!.ExpenseAccount = await _db.Accounts.FindAsync(106);
+        // Link expense account to program
+        var rentProg = await _db.Programs.FindAsync(30);
+        rentProg!.ExpenseAccount = await _db.Accounts.FindAsync(106);
 
         await _db.SaveChangesAsync();
     }
@@ -171,7 +167,7 @@ public class JournalEngineTests : IDisposable
             Date = DateTime.UtcNow,
             SponsorId = 40,
             PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20, // Himmet (unrestricted)
+            ProgramId = 20, // Himmet (unrestricted)
             Amount = 500m,
             ReceiptNumber = "RCPT-001",
             CreatedByUserId = 1
@@ -201,7 +197,7 @@ public class JournalEngineTests : IDisposable
             Date = DateTime.UtcNow,
             SponsorId = 40,
             PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20,
+            ProgramId = 20,
             Amount = 100m,
             CreatedByUserId = 1
         };
@@ -222,7 +218,7 @@ public class JournalEngineTests : IDisposable
             Date = DateTime.UtcNow,
             SponsorId = 40,
             PaymentMethod = PaymentMethod.Bank,
-            DonationCategoryId = 21, // Zekat (restricted)
+            ProgramId = 21, // Zekat (restricted)
             Amount = 1000m,
             ReceiptNumber = "RCPT-002",
             CreatedByUserId = 1
@@ -243,7 +239,7 @@ public class JournalEngineTests : IDisposable
             Date = DateTime.UtcNow,
             SponsorId = 40,
             PaymentMethod = PaymentMethod.Bank,
-            DonationCategoryId = 20,
+            ProgramId = 20,
             Amount = 250m,
             CreatedByUserId = 1
         };
@@ -263,7 +259,7 @@ public class JournalEngineTests : IDisposable
             Date = DateTime.UtcNow,
             SponsorId = 40,
             PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20,
+            ProgramId = 20,
             Amount = 0m,
             CreatedByUserId = 1
         };
@@ -282,7 +278,7 @@ public class JournalEngineTests : IDisposable
             Date = DateTime.UtcNow,
             VendorName = "Test Vendor",
             PaymentMethod = PaymentMethod.Cash,
-            ExpenseCategoryId = 30,
+            ProgramId = 30,
             Amount = 200m,
             CreatedByUserId = 1
         };
@@ -305,7 +301,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.UtcNow, SponsorId = 40, PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20, Amount = 500m, CreatedByUserId = 1
+            ProgramId = 20, Amount = 500m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -314,7 +310,7 @@ public class JournalEngineTests : IDisposable
             Date = DateTime.UtcNow,
             VendorName = "Test Vendor",
             PaymentMethod = PaymentMethod.Cash,
-            ExpenseCategoryId = 30, // Rent
+            ProgramId = 30, // Rent
             Amount = 200m,
             CreatedByUserId = 1
         };
@@ -365,7 +361,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.UtcNow, SponsorId = 40, PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20, Amount = 1000m, CreatedByUserId = 1
+            ProgramId = 20, Amount = 1000m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -399,7 +395,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.UtcNow, SponsorId = 40, PaymentMethod = PaymentMethod.Bank,
-            DonationCategoryId = 20, Amount = 1000m, CreatedByUserId = 1
+            ProgramId = 20, Amount = 1000m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -448,7 +444,7 @@ public class JournalEngineTests : IDisposable
             Date = DateTime.UtcNow,
             SponsorId = 40,
             PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20,
+            ProgramId = 20,
             Amount = 500m,
             CreatedByUserId = 1
         };
@@ -471,7 +467,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.UtcNow, SponsorId = 40, PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20, Amount = 500m, CreatedByUserId = 1
+            ProgramId = 20, Amount = 500m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -479,7 +475,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordExpenseAsync(new Expense
         {
             Date = DateTime.UtcNow, VendorName = "Vendor", PaymentMethod = PaymentMethod.Cash,
-            ExpenseCategoryId = 30, Amount = 200m, CreatedByUserId = 1
+            ProgramId = 30, Amount = 200m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -503,7 +499,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.UtcNow, SponsorId = 40, PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20, Amount = 1000m, CreatedByUserId = 1
+            ProgramId = 20, Amount = 1000m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -532,7 +528,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.UtcNow, SponsorId = 40, PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20, Amount = 1000m, CreatedByUserId = 1
+            ProgramId = 20, Amount = 1000m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -547,7 +543,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.UtcNow, SponsorId = 40, PaymentMethod = PaymentMethod.Bank,
-            DonationCategoryId = 21, Amount = 500m, CreatedByUserId = 1
+            ProgramId = 21, Amount = 500m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -587,7 +583,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.UtcNow, SponsorId = 40, PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20, Amount = 100m, CreatedByUserId = 1
+            ProgramId = 20, Amount = 100m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -595,7 +591,7 @@ public class JournalEngineTests : IDisposable
         var expense = new Expense
         {
             Date = DateTime.UtcNow, VendorName = "Vendor", PaymentMethod = PaymentMethod.Cash,
-            ExpenseCategoryId = 30, Amount = 200m, CreatedByUserId = 1
+            ProgramId = 30, Amount = 200m, CreatedByUserId = 1
         };
 
         var entry = await _engine.RecordExpenseAsync(expense);
@@ -614,7 +610,7 @@ public class JournalEngineTests : IDisposable
         await _engine.RecordDonationAsync(new Donation
         {
             Date = DateTime.UtcNow, SponsorId = 40, PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20, Amount = 100m, CreatedByUserId = 1
+            ProgramId = 20, Amount = 100m, CreatedByUserId = 1
         });
         await SaveAsync();
 
@@ -642,7 +638,7 @@ public class JournalEngineTests : IDisposable
             Date = DateTime.UtcNow,
             SponsorId = 40,
             PaymentMethod = PaymentMethod.Cash,
-            DonationCategoryId = 20,
+            ProgramId = 20,
             Amount = 0m,
             CreatedByUserId = 1
         };
