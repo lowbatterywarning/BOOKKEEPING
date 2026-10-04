@@ -33,7 +33,9 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ViewModels.SponsorsViewModel>();
         services.AddTransient<ViewModels.SponsorDashboardViewModel>();
         services.AddTransient<ViewModels.IncomeViewModel>();
-        services.AddTransient<ViewModels.ExpensesViewModel>();
+        services.AddTransient<ViewModels.ExpensesViewModel>(provider => new(
+            provider.GetRequiredService<AppDbContext>(), provider.GetRequiredService<IJournalEngine>(),
+            provider.GetRequiredService<AuditService>(), provider.GetRequiredService<ExportService>(), attachmentsPath));
         services.AddTransient<ViewModels.ProgramsViewModel>();
         services.AddTransient<ViewModels.CashBankViewModel>();
         services.AddTransient<ViewModels.ReportsViewModel>();

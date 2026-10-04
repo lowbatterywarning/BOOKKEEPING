@@ -10,7 +10,7 @@ using System.Windows.Threading;
 
 namespace Bookkeeping.Wpf.ViewModels;
 
-public partial class SettingsViewModel : ObservableObject
+public partial class SettingsViewModel : ObservableObject, IDisposable
 {
     private readonly AppDbContext _db;
     private readonly Services.BackupService _backupService;
@@ -29,6 +29,14 @@ public partial class SettingsViewModel : ObservableObject
     {
         _db = db;
         _backupService = backupService;
+    }
+
+    public bool IsAutoBackupScheduled => _autoBackupTimer?.IsEnabled == true;
+
+    public async Task InitializeAsync()
+    {
+        await LoadAsync();
+        ConfigureAutoBackup();
     }
 
     [RelayCommand]
@@ -114,10 +122,12 @@ public partial class SettingsViewModel : ObservableObject
                         System.Diagnostics.Debug.WriteLine($"Auto-backup failed: {ex.Message}");
                     }
                 },
-                Application.Current.Dispatcher);
+                Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher);
             _autoBackupTimer.Start();
         }
     }
+
+    public void Dispose() => _autoBackupTimer?.Stop();
 
     private async Task<string> GetSettingAsync(string key, string defaultValue)
     {

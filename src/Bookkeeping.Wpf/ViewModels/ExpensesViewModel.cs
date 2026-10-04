@@ -53,13 +53,13 @@ public partial class ExpensesViewModel : ObservableObject
 
     private readonly string _attachmentsFolder;
 
-    public ExpensesViewModel(AppDbContext db, IJournalEngine journal, Services.AuditService audit, Services.ExportService exportService)
+    public ExpensesViewModel(AppDbContext db, IJournalEngine journal, Services.AuditService audit, Services.ExportService exportService, string? attachmentsFolder = null)
     {
         _db = db;
         _journal = journal;
         _audit = audit;
         _exportService = exportService;
-        _attachmentsFolder = Path.Combine(
+        _attachmentsFolder = attachmentsFolder ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Bookkeeping", "attachments");
         Directory.CreateDirectory(_attachmentsFolder);
@@ -153,6 +153,7 @@ public partial class ExpensesViewModel : ObservableObject
             await _db.SaveChangesAsync();
 
             _audit.LogCreate(1, "Expense", expense.Id, $"{expense.Amount:C} to {expense.VendorName}");
+            await _db.SaveChangesAsync();
 
             await transaction.CommitAsync();
 

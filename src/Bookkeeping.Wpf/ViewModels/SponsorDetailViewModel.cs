@@ -152,11 +152,15 @@ public partial class SponsorDetailViewModel : ObservableObject
 
     private async Task LoadDonationsAsync()
     {
+        var today = DateTime.Today;
+        var yearStart = new DateTime(today.Year, 1, 1);
+        var tomorrow = today.AddDays(1);
         var donations = await _db.Donations
-            .Where(d => d.SponsorId == _sponsorId)
+            .AsNoTracking()
+            .Where(d => d.SponsorId == _sponsorId && d.Date >= yearStart && d.Date < tomorrow)
             .Include(d => d.Program)
             .OrderByDescending(d => d.Date)
-            .Take(500)
+            .ThenByDescending(d => d.Id)
             .ToListAsync();
 
         _allDonations = donations.Select(d => new SponsorDonationRow
@@ -168,9 +172,6 @@ public partial class SponsorDetailViewModel : ObservableObject
             ReceiptNumber = d.ReceiptNumber,
         }).ToList();
 
-        HasMoreDonations = donations.Count >= 500;
-
-        var today = DateTime.Today;
         var from = ShowCurrentMonth
             ? new DateTime(today.Year, today.Month, 1)
             : new DateTime(today.Year, 1, 1);
@@ -210,7 +211,8 @@ public partial class SponsorDetailViewModel : ObservableObject
             .Where(d => d.Date >= from && d.Date < to)
             .OrderByDescending(d => d.Date)
             .ToList();
-        Donations = new ObservableCollection<SponsorDonationRow>(filtered);
+        HasMoreDonations = filtered.Count > 500;
+        Donations = new ObservableCollection<SponsorDonationRow>(filtered.Take(500));
     }
 }
 

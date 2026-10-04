@@ -134,6 +134,7 @@ public partial class IncomeViewModel : ObservableObject
             await _db.SaveChangesAsync();
 
             _audit.LogCreate(1, "Donation", donation.Id, $"{donation.Amount:C} from sponsor #{donation.SponsorId}");
+            await _db.SaveChangesAsync();
 
             await transaction.CommitAsync();
 

@@ -10,9 +10,5 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = viewModel;
 
-        Loaded += (_, _) =>
-        {
-            viewModel.Settings.ConfigureAutoBackup();
-        };
     }
 }

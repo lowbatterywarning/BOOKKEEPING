@@ -63,6 +63,8 @@ public partial class CashBankViewModel : ObservableObject
 
         // Load current year's journal entry lines for cash (include navigation for robust categorization)
         var yearStart = new DateTime(DateTime.Today.Year, 1, 1);
+        var cashOpening = await GetBalanceBeforeAsync(cashAccount.Id, yearStart);
+        var bankOpening = await GetBalanceBeforeAsync(bankAccount.Id, yearStart);
         var cashLines = await _db.JournalEntryLines
             .Include(l => l.JournalEntry).ThenInclude(j => j.Donation)
             .Include(l => l.JournalEntry).ThenInclude(j => j.Expense)
@@ -81,30 +83,40 @@ public partial class CashBankViewModel : ObservableObject
             .ToListAsync();
 
         // Process cash
-        var cashLedger = BuildLedgerLines(cashLines);
+        var cashLedger = BuildLedgerLines(cashLines, cashOpening);
         CashTransactions = new ObservableCollection<LedgerLine>(cashLedger);
-        CashBeginningBalance = cashLedger.Where(l => l.Type == "Beginning").Sum(l => l.Amount);
+        CashBeginningBalance = cashOpening + cashLedger.Where(l => l.Type == "Beginning").Sum(l => l.Debit - l.Credit);
         CashIncome = cashLedger.Where(l => l.Type == "Donation").Sum(l => l.Amount);
         CashExpenses = cashLedger.Where(l => l.Type == "Expense").Sum(l => l.Amount);
         CashTransfersIn = cashLedger.Where(l => l.Type == "Transfer In").Sum(l => l.Amount);
         CashTransfersOut = cashLedger.Where(l => l.Type == "Transfer Out").Sum(l => l.Amount);
-        CashEndingBalance = CashBeginningBalance + CashIncome - CashExpenses + CashTransfersIn - CashTransfersOut;
+        CashEndingBalance = cashOpening + cashLines.Sum(l => l.DebitAmount - l.CreditAmount);
 
         // Process bank
-        var bankLedger = BuildLedgerLines(bankLines);
+        var bankLedger = BuildLedgerLines(bankLines, bankOpening);
         BankTransactions = new ObservableCollection<LedgerLine>(bankLedger);
-        BankBeginningBalance = bankLedger.Where(l => l.Type == "Beginning").Sum(l => l.Amount);
+        BankBeginningBalance = bankOpening + bankLedger.Where(l => l.Type == "Beginning").Sum(l => l.Debit - l.Credit);
         BankIncome = bankLedger.Where(l => l.Type == "Donation").Sum(l => l.Amount);
         BankExpenses = bankLedger.Where(l => l.Type == "Expense").Sum(l => l.Amount);
         BankTransfersIn = bankLedger.Where(l => l.Type == "Transfer In").Sum(l => l.Amount);
         BankTransfersOut = bankLedger.Where(l => l.Type == "Transfer Out").Sum(l => l.Amount);
-        BankEndingBalance = BankBeginningBalance + BankIncome - BankExpenses + BankTransfersIn - BankTransfersOut;
+        BankEndingBalance = bankOpening + bankLines.Sum(l => l.DebitAmount - l.CreditAmount);
     }
 
-    private List<LedgerLine> BuildLedgerLines(List<JournalEntryLine> lines)
+    private async Task<decimal> GetBalanceBeforeAsync(int accountId, DateTime before)
+    {
+        var totals = await _db.JournalEntryLines
+            .Where(l => l.AccountId == accountId && l.JournalEntry.Date < before)
+            .GroupBy(l => 1)
+            .Select(g => new { Debits = g.Sum(l => l.DebitAmount), Credits = g.Sum(l => l.CreditAmount) })
+            .FirstOrDefaultAsync();
+        return totals == null ? 0 : totals.Debits - totals.Credits;
+    }
+
+    private List<LedgerLine> BuildLedgerLines(List<JournalEntryLine> lines, decimal openingBalance)
     {
         var result = new List<LedgerLine>();
-        decimal runningBalance = 0;
+        decimal runningBalance = openingBalance;
 
         foreach (var line in lines)
         {
@@ -115,14 +127,14 @@ public partial class CashBankViewModel : ObservableObject
 
             // Robust categorization via entity relationships, not string matching
             string type;
-            if (entry.Reference == "OPEN")
-                type = "Beginning";
-            else if (entry.Donation != null)
+            if (entry.Donation != null)
                 type = "Donation";
             else if (entry.Expense != null)
                 type = "Expense";
             else if (entry.CashBankTransfer != null)
                 type = isDebit ? "Transfer In" : "Transfer Out";
+            else if (entry.Reference == "OPEN")
+                type = "Beginning";
             else
                 type = isDebit ? "Deposit" : "Withdrawal";
 
@@ -243,7 +255,8 @@ public partial class CashBankViewModel : ObservableObject
         if (account != null)
         {
             var hasExisting = await _db.JournalEntries
-                .AnyAsync(j => j.Reference == "OPEN" && j.Lines.Any(l => l.AccountId == account.Id));
+                .AnyAsync(j => j.Reference == "OPEN" && j.Donation == null && j.Expense == null
+                    && j.CashBankTransfer == null && j.Lines.Any(l => l.AccountId == account.Id));
             if (hasExisting)
             {
                 BeginningBalanceError = $"A beginning balance for {BeginningBalanceAccount} already exists. Delete the existing one first.";

@@ -33,7 +33,7 @@ public partial class ProgramDetailViewModel : ObservableObject
 
     [ObservableProperty] private decimal _netAmount;
 
-    /// <summary>True when the transaction queries were capped at 500 results each.</summary>
+    /// <summary>True when the displayed list is capped; totals include the full period.</summary>
     [ObservableProperty] private bool _hasMoreTransactions;
 
     public string NetAmountColor => NetAmount >= 0 ? "#27ae60" : "#c0392b";
@@ -82,10 +82,13 @@ public partial class ProgramDetailViewModel : ObservableObject
     private async Task LoadTransactionsAsync()
     {
         var today = DateTime.Today;
+        var yearStart = new DateTime(today.Year, 1, 1);
+        var tomorrow = today.AddDays(1);
 
         // Load donations
         IQueryable<Donation> donationQuery = _db.Donations
             .AsNoTracking()
+            .Where(d => d.Date >= yearStart && d.Date < tomorrow)
             .Include(d => d.Sponsor)
             .Include(d => d.Program);
         if (_programId.HasValue)
@@ -93,22 +96,21 @@ public partial class ProgramDetailViewModel : ObservableObject
 
         var donations = await donationQuery
             .OrderByDescending(d => d.Date)
-            .Take(500)
+            .ThenByDescending(d => d.Id)
             .ToListAsync();
 
         // Load expenses
         IQueryable<Expense> expenseQuery = _db.Expenses
             .AsNoTracking()
+            .Where(e => e.Date >= yearStart && e.Date < tomorrow)
             .Include(e => e.Program);
         if (_programId.HasValue)
             expenseQuery = expenseQuery.Where(e => e.ProgramId == _programId.Value);
 
         var expenses = await expenseQuery
             .OrderByDescending(e => e.Date)
-            .Take(500)
+            .ThenByDescending(e => e.Id)
             .ToListAsync();
-
-        HasMoreTransactions = donations.Count >= 500 || expenses.Count >= 500;
 
         var lines = new List<TransactionLine>();
 
@@ -144,7 +146,6 @@ public partial class ProgramDetailViewModel : ObservableObject
         _allTransactions = lines.OrderByDescending(l => l.Date).ToList();
 
         // Filter by month or year
-        var tomorrow = today.AddDays(1);
         var from = ShowCurrentMonth
             ? new DateTime(today.Year, today.Month, 1)
             : new DateTime(today.Year, 1, 1);
@@ -186,7 +187,8 @@ public partial class ProgramDetailViewModel : ObservableObject
             .Where(t => t.Date >= from && t.Date < to)
             .OrderByDescending(t => t.Date)
             .ToList();
-        Transactions = new ObservableCollection<TransactionLine>(filtered);
+        HasMoreTransactions = filtered.Count > 500;
+        Transactions = new ObservableCollection<TransactionLine>(filtered.Take(500));
     }
 }
 

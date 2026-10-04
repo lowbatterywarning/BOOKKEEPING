@@ -1,4 +1,3 @@
-using System.IO;
 using Bookkeeping.Data;
 using Bookkeeping.Core.Models;
 using Bookkeeping.Core.Enums;
@@ -14,28 +13,11 @@ public class DatabaseInitializer
 
     public async Task InitializeAsync()
     {
-        try
-        {
-            await _db.Database.MigrateAsync();
-        }
-        catch (Exception)
-        {
-            // The database file exists but is unusable (e.g. created by an older
-            // build without migration history). Move it aside and start fresh.
-            ResetDatabaseFile();
-            await _db.Database.MigrateAsync();
-        }
+        // A migration failure does not imply corruption. Preserve the database
+        // and let startup report the error instead of silently replacing data.
+        await _db.Database.MigrateAsync();
         await SeedProgramsAsync();
         await EnsureProgramAccountsAsync();
-    }
-
-    private static void ResetDatabaseFile()
-    {
-        var dbPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Bookkeeping", "bookkeeping.db");
-        if (!File.Exists(dbPath)) return;
-        File.Move(dbPath, $"{dbPath}.broken_{DateTime.Now:yyyyMMdd_HHmmss}");
     }
 
     private async Task SeedProgramsAsync()

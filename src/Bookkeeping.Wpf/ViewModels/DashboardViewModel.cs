@@ -57,21 +57,10 @@ public partial class DashboardViewModel : ObservableObject
                 .OrderBy(p => p.Name)
                 .ToListAsync();
 
-            if (programs.Count == 0)
-            {
-                IsEmpty = true;
-                EmptyMessage = "No programs configured yet.\nGo to Programs in the sidebar to create your first program.";
-                Tiles = new ObservableCollection<DashboardTileViewModel>();
-                return;
-            }
-
-            var programIds = programs.Select(p => p.Id).ToList();
-
             // Single grouped query for MTD revenue per program
             var revenueByProgram = await _db.Donations
                 .AsNoTracking()
-                .Where(d => d.Date >= monthStart && d.Date < tomorrow
-                         && programIds.Contains(d.ProgramId))
+                .Where(d => d.Date >= monthStart && d.Date < tomorrow)
                 .GroupBy(d => d.ProgramId)
                 .Select(g => new { ProgramId = g.Key, Total = g.Sum(d => d.Amount) })
                 .ToListAsync();
@@ -79,8 +68,7 @@ public partial class DashboardViewModel : ObservableObject
             // Single grouped query for MTD expenses per program
             var expensesByProgram = await _db.Expenses
                 .AsNoTracking()
-                .Where(e => e.Date >= monthStart && e.Date < tomorrow
-                         && programIds.Contains(e.ProgramId))
+                .Where(e => e.Date >= monthStart && e.Date < tomorrow)
                 .GroupBy(e => e.ProgramId)
                 .Select(g => new { ProgramId = g.Key, Total = g.Sum(e => e.Amount) })
                 .ToListAsync();

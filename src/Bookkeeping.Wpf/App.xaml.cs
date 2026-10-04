@@ -10,6 +10,7 @@ namespace Bookkeeping.Wpf;
 public partial class App : Application
 {
     internal static IServiceProvider? Services { get; private set; }
+    private bool _databaseReady;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -38,12 +39,15 @@ public partial class App : Application
             using var scope = Services.CreateScope();
             var initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
             await initializer.InitializeAsync();
+            _databaseReady = true;
 
             // Keep a rolling snapshot of the database while the app runs.
             Services.GetRequiredService<AutoBackupService>().Start();
 
             // No login — single-user, single-laptop, go straight to the app
-            var mainWindow = new MainWindow(Services.GetRequiredService<MainViewModel>());
+            var mainViewModel = Services.GetRequiredService<MainViewModel>();
+            await mainViewModel.Settings.InitializeAsync();
+            var mainWindow = new MainWindow(mainViewModel);
             mainWindow.Show();
         }
         catch (Exception ex)
@@ -59,7 +63,8 @@ public partial class App : Application
         // Final snapshot so the auto-backup is at most one session old.
         try
         {
-            Services?.GetRequiredService<AutoBackupService>().CreateSnapshotAsync().Wait(TimeSpan.FromSeconds(10));
+            if (_databaseReady)
+                Services?.GetRequiredService<AutoBackupService>().CreateSnapshotAsync().Wait(TimeSpan.FromSeconds(10));
         }
         catch { /* never block exit on a backup failure */ }
 

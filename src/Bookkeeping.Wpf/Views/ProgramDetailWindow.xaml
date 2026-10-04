@@ -149,7 +149,7 @@
                                 </Style.Triggers>
                             </Style>
                         </TextBlock.Style>
-                        <Run Text="⚠ Showing most recent 500 transactions per type." Foreground="#e67e22" FontSize="11"/>
+                        <Run Text="⚠ Showing most recent 500 transactions. Totals include the full period." Foreground="#e67e22" FontSize="11"/>
                         <Run Text=" Use Reports for full history." Foreground="#888" FontSize="11"/>
                     </TextBlock>
                 </StackPanel>

@@ -106,14 +106,75 @@ public partial class SponsorsViewModel : ObservableValidator
     };
 
     [RelayCommand] private async Task AddNewAsync() { AllPrograms = new ObservableCollection<OrgProgram>(await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync()); SelectedSponsor = null; ClearEditFields(); EditTargets = new ObservableCollection<ProgramTargetEdit>(AllPrograms.Select(p => new ProgramTargetEdit { ProgramId = p.Id, ProgramName = p.Name, TargetAmount = 0 })); IsEditing = true; }
-    [RelayCommand] private async Task EditAsync() { if (SelectedSponsor == null) return; AllPrograms = new ObservableCollection<OrgProgram>(await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync()); var sponsor = await _db.Sponsors.Include(s => s.Targets).FirstAsync(s => s.Id == SelectedSponsor.Id); EditName = SelectedSponsor.Name; EditAddress = SelectedSponsor.Address; EditPhone = SelectedSponsor.Phone; EditEmail = SelectedSponsor.Email; EditNotes = SelectedSponsor.Notes; var targetDict = sponsor.Targets.ToDictionary(t => t.ProgramId, t => t.TargetAmount); EditTargets = new ObservableCollection<ProgramTargetEdit>(AllPrograms.Select(p => new ProgramTargetEdit { ProgramName = p.Name, ProgramId = p.Id, TargetAmount = targetDict.GetValueOrDefault(p.Id, 0) })); EditErrorMessage = null; IsEditing = true; }
-    [RelayCommand] private async Task SaveAsync() { EditErrorMessage = null; if (string.IsNullOrWhiteSpace(EditName)) { EditErrorMessage = "Name is required."; return; } ValidateAllProperties(); if (HasErrors) { EditErrorMessage = string.Join("\n", GetErrors("EditPhone").Cast<ValidationResult>().Select(e => e.ErrorMessage).Concat(GetErrors("EditEmail").Cast<ValidationResult>().Select(e => e.ErrorMessage))); return; } if (SelectedSponsor == null) { var s = new Sponsor { Name = EditName.Trim(), Address = EditAddress?.Trim(), Phone = EditPhone?.Trim(), Email = EditEmail?.Trim(), Notes = EditNotes?.Trim() }; _db.Sponsors.Add(s); await _db.SaveChangesAsync(); await SaveTargetsAsync(s.Id); } else { var s = await _db.Sponsors.Include(x => x.Targets).FirstAsync(x => x.Id == SelectedSponsor.Id); s.Name = EditName.Trim(); s.Address = EditAddress?.Trim(); s.Phone = EditPhone?.Trim(); s.Email = EditEmail?.Trim(); s.Notes = EditNotes?.Trim(); _db.SponsorTargets.RemoveRange(s.Targets); await _db.SaveChangesAsync(); await SaveTargetsAsync(s.Id); } IsEditing = false; await LoadAsync(); }
+    [RelayCommand] private async Task EditAsync() { if (SelectedSponsor == null) return; AllPrograms = new ObservableCollection<OrgProgram>(await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync()); var sponsor = await _db.Sponsors.Include(s => s.Targets).FirstAsync(s => s.Id == SelectedSponsor.Id); EditName = SelectedSponsor.Name; EditAddress = SelectedSponsor.Address; EditPhone = SelectedSponsor.Phone; EditEmail = SelectedSponsor.Email; EditNotes = SelectedSponsor.Notes; var targetDict = sponsor.Targets.Where(t => t.Year == null).ToDictionary(t => t.ProgramId, t => t.TargetAmount); EditTargets = new ObservableCollection<ProgramTargetEdit>(AllPrograms.Select(p => new ProgramTargetEdit { ProgramName = p.Name, ProgramId = p.Id, TargetAmount = targetDict.GetValueOrDefault(p.Id, 0) })); EditErrorMessage = null; IsEditing = true; }
+    [RelayCommand]
+    private async Task SaveAsync()
+    {
+        EditErrorMessage = null;
+        if (string.IsNullOrWhiteSpace(EditName)) { EditErrorMessage = "Name is required."; return; }
+        if (EditTargets.Any(t => t.TargetAmount < 0)) { EditErrorMessage = "Targets cannot be negative."; return; }
+        ValidateAllProperties();
+        if (HasErrors)
+        {
+            EditErrorMessage = string.Join("\n", GetErrors("EditPhone").Cast<ValidationResult>()
+                .Concat(GetErrors("EditEmail").Cast<ValidationResult>()).Select(e => e.ErrorMessage));
+            return;
+        }
+
+        try
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+            var sponsor = SelectedSponsor == null
+                ? new Sponsor()
+                : await _db.Sponsors.Include(s => s.Targets).FirstAsync(s => s.Id == SelectedSponsor.Id);
+            if (SelectedSponsor == null) _db.Sponsors.Add(sponsor);
+
+            sponsor.Name = EditName.Trim();
+            sponsor.Address = EditAddress?.Trim();
+            sponsor.Phone = EditPhone?.Trim();
+            sponsor.Email = EditEmail?.Trim();
+            sponsor.Notes = EditNotes?.Trim();
+            UpdateTargets(sponsor);
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            _db.ChangeTracker.Clear();
+            EditErrorMessage = $"Could not save sponsor: {ex.InnerException?.Message ?? ex.Message}";
+            return;
+        }
+
+        IsEditing = false;
+        await LoadAsync();
+    }
+
     [RelayCommand] private async Task ToggleActiveAsync(SponsorDisplay? s) { if (s == null) return; var e = await _db.Sponsors.FindAsync(s.Id); if (e != null) { e.IsActive = !e.IsActive; await _db.SaveChangesAsync(); await LoadAsync(); } }
     [RelayCommand] private async Task DeleteAsync() { if (SelectedSponsor == null) return; var s = await _db.Sponsors.FindAsync(SelectedSponsor.Id); if (s != null) { s.IsActive = false; await _db.SaveChangesAsync(); } SelectedSponsor = null; IsEditing = false; await LoadAsync(); }
     [RelayCommand] private void CancelEdit() { IsEditing = false; EditErrorMessage = null; }
 
     private void ClearEditFields() { EditName = string.Empty; EditAddress = null; EditPhone = null; EditEmail = null; EditNotes = null; EditErrorMessage = null; }
-    private async Task SaveTargetsAsync(int sponsorId) { var targets = EditTargets.Where(t => t.TargetAmount > 0).Select(t => new SponsorTarget { SponsorId = sponsorId, ProgramId = t.ProgramId, TargetAmount = t.TargetAmount }); _db.SponsorTargets.AddRange(targets); await _db.SaveChangesAsync(); }
+    private void UpdateTargets(Sponsor sponsor)
+    {
+        // Only edit the timeless targets actually present in the form.
+        // Inactive-program and year-specific targets retain their identities.
+        foreach (var edit in EditTargets)
+        {
+            var existing = sponsor.Targets.SingleOrDefault(t => t.ProgramId == edit.ProgramId && t.Year == null);
+            if (edit.TargetAmount <= 0)
+            {
+                if (existing != null) _db.SponsorTargets.Remove(existing);
+            }
+            else if (existing != null)
+            {
+                existing.TargetAmount = edit.TargetAmount;
+            }
+            else
+            {
+                sponsor.Targets.Add(new SponsorTarget { ProgramId = edit.ProgramId, TargetAmount = edit.TargetAmount });
+            }
+        }
+    }
 
     public static ValidationResult ValidatePhone(string? value)
     {
