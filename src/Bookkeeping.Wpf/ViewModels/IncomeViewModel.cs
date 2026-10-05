@@ -37,7 +37,7 @@ public partial class IncomeViewModel : ObservableObject
     [ObservableProperty]
     private bool _isAdding;
     [ObservableProperty]
-    private DateTime _newDate = DateTime.Today;
+    private DateTime? _newDate = DateTime.Today;
     [ObservableProperty]
     private Sponsor? _newSponsor;
     [ObservableProperty]
@@ -62,6 +62,17 @@ public partial class IncomeViewModel : ObservableObject
         _audit = audit;
     }
 
+
+    private bool _editingNewAmount;
+    private string _newAmountText = "0";
+    public string NewAmountText
+    {
+        get => _newAmountText;
+        set { SetProperty(ref _newAmountText, value); if (decimal.TryParse(value, out var amount)) { _editingNewAmount = true; try { NewAmount = amount; } finally { _editingNewAmount = false; } } }
+    }
+    partial void OnNewAmountChanged(decimal value)
+    { if (_editingNewAmount) return; _newAmountText = value.ToString(System.Globalization.CultureInfo.CurrentCulture); OnPropertyChanged(nameof(NewAmountText)); }
+
     [RelayCommand]
     public async Task LoadAsync()
     {
@@ -79,8 +90,8 @@ public partial class IncomeViewModel : ObservableObject
         var donations = await query.OrderByDescending(d => d.Date).ThenByDescending(d => d.Id).Take(200).ToListAsync();
         Donations = new ObservableCollection<Donation>(donations);
 
-        Sponsors = new ObservableCollection<Sponsor>(await _db.Sponsors.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync());
-        Programs = new ObservableCollection<OrgProgram>(await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
+        PickerRefresh.Update(Sponsors, await _db.Sponsors.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync());
+        PickerRefresh.Update(Programs, await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
     }
 
     [RelayCommand]
@@ -91,6 +102,7 @@ public partial class IncomeViewModel : ObservableObject
         NewPaymentMethod = PaymentMethod.Cash;
         NewProgram = null;
         NewAmount = 0;
+        NewAmountText = "0";
         NewReceiptNumber = null;
         NewNotes = null;
         ErrorMessage = null;
@@ -107,14 +119,16 @@ public partial class IncomeViewModel : ObservableObject
     private async Task SaveDonationAsync()
     {
         ErrorMessage = null;
+        if (!NewDate.HasValue) { ErrorMessage = "Please enter a valid date."; return; }
 
         if (NewSponsor == null) { ErrorMessage = "Please select a sponsor."; return; }
         if (NewProgram == null) { ErrorMessage = "Please select a program."; return; }
+        if (!decimal.TryParse(NewAmountText, out _) ) { ErrorMessage = "Enter a valid amount."; return; }
         if (NewAmount <= 0) { ErrorMessage = "Amount must be greater than zero."; return; }
 
         var donation = new Donation
         {
-            Date = NewDate,
+            Date = NewDate.Value,
             SponsorId = NewSponsor.Id,
             PaymentMethod = NewPaymentMethod,
             ProgramId = NewProgram.Id,
@@ -125,9 +139,9 @@ public partial class IncomeViewModel : ObservableObject
             CreatedAt = DateTime.UtcNow
         };
 
-        using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
             var entry = await _journal.RecordDonationAsync(donation);
             donation.JournalEntry = entry;
             _db.Donations.Add(donation);
@@ -138,12 +152,9 @@ public partial class IncomeViewModel : ObservableObject
 
             await transaction.CommitAsync();
 
-            IsAdding = false;
-            await LoadAsync();
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             _db.ChangeTracker.Clear();
             var msg = ex.Message;
             var inner = ex.InnerException;
@@ -153,7 +164,12 @@ public partial class IncomeViewModel : ObservableObject
                 inner = inner.InnerException;
             }
             ErrorMessage = $"Error saving donation: {msg}";
+            return;
         }
+
+        IsAdding = false;
+        try { await LoadAsync(); }
+        catch (Exception ex) { ErrorMessage = $"Donation saved. Refresh failed: {ex.Message}. Reload the screen; do not save again."; }
     }
 
     [RelayCommand]

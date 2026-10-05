@@ -131,7 +131,7 @@ public sealed class BackupRegressionTests : IDisposable
         Assert.NotNull(program.IncomeAccount);
         Assert.NotNull(program.ExpenseAccount);
         Assert.Equal("General Operations", program.Name);
-        Assert.Single(await db.Database.GetAppliedMigrationsAsync());
+        Assert.Equal(2, (await db.Database.GetAppliedMigrationsAsync()).Count());
     }
 
     [Fact]

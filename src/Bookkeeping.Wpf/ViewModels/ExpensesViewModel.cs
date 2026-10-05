@@ -35,7 +35,7 @@ public partial class ExpensesViewModel : ObservableObject
     [ObservableProperty]
     private bool _isAdding;
     [ObservableProperty]
-    private DateTime _newDate = DateTime.Today;
+    private DateTime? _newDate = DateTime.Today;
     [ObservableProperty]
     private string _newVendorName = string.Empty;
     [ObservableProperty]
@@ -65,6 +65,17 @@ public partial class ExpensesViewModel : ObservableObject
         Directory.CreateDirectory(_attachmentsFolder);
     }
 
+
+    private bool _editingNewAmount;
+    private string _newAmountText = "0";
+    public string NewAmountText
+    {
+        get => _newAmountText;
+        set { SetProperty(ref _newAmountText, value); if (decimal.TryParse(value, out var amount)) { _editingNewAmount = true; try { NewAmount = amount; } finally { _editingNewAmount = false; } } }
+    }
+    partial void OnNewAmountChanged(decimal value)
+    { if (_editingNewAmount) return; _newAmountText = value.ToString(System.Globalization.CultureInfo.CurrentCulture); OnPropertyChanged(nameof(NewAmountText)); }
+
     [RelayCommand]
     public async Task LoadAsync()
     {
@@ -80,7 +91,7 @@ public partial class ExpensesViewModel : ObservableObject
         var expenses = await query.OrderByDescending(e => e.Date).ThenByDescending(e => e.Id).Take(200).ToListAsync();
         Expenses = new ObservableCollection<Expense>(expenses);
 
-        Programs = new ObservableCollection<OrgProgram>(await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
+        PickerRefresh.Update(Programs, await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
     }
 
     [RelayCommand]
@@ -91,6 +102,7 @@ public partial class ExpensesViewModel : ObservableObject
         NewPaymentMethod = PaymentMethod.Cash;
         NewProgram = null;
         NewAmount = 0;
+        NewAmountText = "0";
         NewNotes = null;
         NewReceiptPath = null;
         ErrorMessage = null;
@@ -126,14 +138,19 @@ public partial class ExpensesViewModel : ObservableObject
     private async Task SaveExpenseAsync()
     {
         ErrorMessage = null;
+        if (!NewDate.HasValue) { ErrorMessage = "Please enter a valid date."; return; }
 
         if (string.IsNullOrWhiteSpace(NewVendorName)) { ErrorMessage = "Vendor name is required."; return; }
         if (NewProgram == null) { ErrorMessage = "Please select a program."; return; }
+        if (!decimal.TryParse(NewAmountText, out _) ) { ErrorMessage = "Enter a valid amount."; return; }
         if (NewAmount <= 0) { ErrorMessage = "Amount must be greater than zero."; return; }
+
+        if (!string.IsNullOrEmpty(NewReceiptPath))
+        { try { Services.ReceiptPaths.Resolve(_attachmentsFolder, NewReceiptPath); } catch (InvalidDataException ex) { ErrorMessage = ex.Message; return; } }
 
         var expense = new Expense
         {
-            Date = NewDate,
+            Date = NewDate.Value,
             VendorName = NewVendorName.Trim(),
             PaymentMethod = NewPaymentMethod,
             ProgramId = NewProgram.Id,
@@ -144,9 +161,9 @@ public partial class ExpensesViewModel : ObservableObject
             CreatedAt = DateTime.UtcNow
         };
 
-        using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
             var entry = await _journal.RecordExpenseAsync(expense);
             expense.JournalEntry = entry;
             _db.Expenses.Add(expense);
@@ -157,12 +174,9 @@ public partial class ExpensesViewModel : ObservableObject
 
             await transaction.CommitAsync();
 
-            IsAdding = false;
-            await LoadAsync();
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
             _db.ChangeTracker.Clear();
             var msg = ex.Message;
             var inner = ex.InnerException;
@@ -172,7 +186,12 @@ public partial class ExpensesViewModel : ObservableObject
                 inner = inner.InnerException;
             }
             ErrorMessage = $"Error saving expense: {msg}";
+            return;
         }
+
+        IsAdding = false;
+        try { await LoadAsync(); }
+        catch (Exception ex) { ErrorMessage = $"Expense saved. Refresh failed: {ex.Message}. Reload the screen; do not save again."; }
     }
 
     [RelayCommand]
@@ -195,8 +214,10 @@ public partial class ExpensesViewModel : ObservableObject
 
         if (!string.IsNullOrEmpty(receiptPath))
         {
-            var fullPath = Path.Combine(_attachmentsFolder, receiptPath);
-            try { if (File.Exists(fullPath)) File.Delete(fullPath); } catch { }
+            try { var fullPath = Services.ReceiptPaths.Resolve(_attachmentsFolder, receiptPath); if (File.Exists(fullPath)) File.Delete(fullPath); }
+            catch (InvalidDataException) { ErrorMessage = "Expense deleted. Its unsafe receipt path was ignored."; }
+            catch (IOException ex) { ErrorMessage = $"Expense deleted. Receipt could not be removed: {ex.Message}"; }
+            catch (UnauthorizedAccessException ex) { ErrorMessage = $"Expense deleted. Receipt could not be removed: {ex.Message}"; }
         }
 
         await LoadAsync();
@@ -206,7 +227,9 @@ public partial class ExpensesViewModel : ObservableObject
     private void OpenReceipt(string? path)
     {
         if (string.IsNullOrEmpty(path)) return;
-        var fullPath = Path.Combine(_attachmentsFolder, path);
+        string fullPath;
+        try { fullPath = Services.ReceiptPaths.Resolve(_attachmentsFolder, path); }
+        catch (InvalidDataException ex) { ErrorMessage = ex.Message; return; }
         if (File.Exists(fullPath))
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo

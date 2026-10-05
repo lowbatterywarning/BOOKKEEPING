@@ -19,10 +19,14 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <StackPanel>
         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
             <TextBlock Text="Programs" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
             <Button Content="+ Add Program" Width="120" Background="#27ae60" Foreground="White"
                     FontWeight="SemiBold" Margin="20,0,0,0" Command="{Binding AddNewCommand}"/>
+        </StackPanel>
+            <TextBlock Text="{Binding EditErrorMessage}" Foreground="#c0392b" TextWrapping="Wrap"
+                       Visibility="{Binding EditErrorMessage, Converter={StaticResource StringToVisibilityConverter}}" Margin="0,0,0,6"/>
         </StackPanel>
 
         <!-- Edit Form -->

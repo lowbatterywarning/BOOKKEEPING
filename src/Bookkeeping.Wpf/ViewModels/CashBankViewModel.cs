@@ -34,7 +34,7 @@ public partial class CashBankViewModel : ObservableObject
 
     // Transfer form
     [ObservableProperty] private bool _isTransferring;
-    [ObservableProperty] private DateTime _transferDate = DateTime.Today;
+    [ObservableProperty] private DateTime? _transferDate = DateTime.Today;
     [ObservableProperty] private string _transferDirection = "CashToBank";
     [ObservableProperty] private decimal _transferAmount;
     [ObservableProperty] private string? _transferNotes;
@@ -43,7 +43,7 @@ public partial class CashBankViewModel : ObservableObject
     // Beginning balance form
     [ObservableProperty] private bool _isSettingBeginningBalance;
     [ObservableProperty] private string _beginningBalanceAccount = "Cash";
-    [ObservableProperty] private DateTime _beginningBalanceDate = DateTime.Today;
+    [ObservableProperty] private DateTime? _beginningBalanceDate = DateTime.Today;
     [ObservableProperty] private decimal _beginningBalanceAmount;
     [ObservableProperty] private string? _beginningBalanceError;
 
@@ -52,6 +52,27 @@ public partial class CashBankViewModel : ObservableObject
         _db = db;
         _journal = journal;
     }
+
+
+    private bool _editingTransferAmount;
+    private string _transferAmountText = "0";
+    public string TransferAmountText
+    {
+        get => _transferAmountText;
+        set { SetProperty(ref _transferAmountText, value); if (decimal.TryParse(value, out var amount)) { _editingTransferAmount = true; try { TransferAmount = amount; } finally { _editingTransferAmount = false; } } }
+    }
+    partial void OnTransferAmountChanged(decimal value)
+    { if (_editingTransferAmount) return; _transferAmountText = value.ToString(System.Globalization.CultureInfo.CurrentCulture); OnPropertyChanged(nameof(TransferAmountText)); }
+
+    private bool _editingBeginningBalanceAmount;
+    private string _beginningBalanceAmountText = "0";
+    public string BeginningBalanceAmountText
+    {
+        get => _beginningBalanceAmountText;
+        set { SetProperty(ref _beginningBalanceAmountText, value); if (decimal.TryParse(value, out var amount)) { _editingBeginningBalanceAmount = true; try { BeginningBalanceAmount = amount; } finally { _editingBeginningBalanceAmount = false; } } }
+    }
+    partial void OnBeginningBalanceAmountChanged(decimal value)
+    { if (_editingBeginningBalanceAmount) return; _beginningBalanceAmountText = value.ToString(System.Globalization.CultureInfo.CurrentCulture); OnPropertyChanged(nameof(BeginningBalanceAmountText)); }
 
     [RelayCommand]
     public async Task LoadAsync()
@@ -163,6 +184,7 @@ public partial class CashBankViewModel : ObservableObject
         TransferDate = DateTime.Today;
         TransferDirection = "CashToBank";
         TransferAmount = 0;
+        TransferAmountText = "0";
         TransferNotes = null;
         TransferError = null;
         IsTransferring = true;
@@ -178,18 +200,20 @@ public partial class CashBankViewModel : ObservableObject
     private async Task ExecuteTransferAsync()
     {
         TransferError = null;
+        if (!TransferDate.HasValue) { TransferError = "Please enter a valid date."; return; }
+        if (!decimal.TryParse(TransferAmountText, out _) ) { TransferError = "Enter a valid amount."; return; }
         if (TransferAmount <= 0)
         {
             TransferError = "Amount must be greater than zero.";
             return;
         }
 
-        using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
             var transfer = new CashBankTransfer
             {
-                Date = TransferDate,
+                Date = TransferDate.Value,
                 Direction = TransferDirection == "CashToBank" ? Core.Enums.TransferDirection.CashToBank : Core.Enums.TransferDirection.BankToCash,
                 Amount = TransferAmount,
                 Notes = TransferNotes?.Trim(),
@@ -203,12 +227,10 @@ public partial class CashBankViewModel : ObservableObject
             await _db.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            IsTransferring = false;
-            await LoadAsync();
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
             var msg = ex.Message;
             var inner = ex.InnerException;
             while (inner != null)
@@ -217,7 +239,12 @@ public partial class CashBankViewModel : ObservableObject
                 inner = inner.InnerException;
             }
             TransferError = $"Transfer failed: {msg}";
+            return;
         }
+
+        IsTransferring = false;
+        try { await LoadAsync(); }
+        catch (Exception ex) { TransferError = $"Transfer saved. Refresh failed: {ex.Message}. Reload the screen; do not save again."; }
     }
 
     // ---- Beginning Balance ----
@@ -228,6 +255,7 @@ public partial class CashBankViewModel : ObservableObject
         BeginningBalanceAccount = "Cash";
         BeginningBalanceDate = DateTime.Today;
         BeginningBalanceAmount = 0;
+        BeginningBalanceAmountText = "0";
         BeginningBalanceError = null;
         IsSettingBeginningBalance = true;
     }
@@ -242,6 +270,8 @@ public partial class CashBankViewModel : ObservableObject
     private async Task SetBeginningBalanceAsync()
     {
         BeginningBalanceError = null;
+        if (!BeginningBalanceDate.HasValue) { BeginningBalanceError = "Please enter a valid date."; return; }
+        if (!decimal.TryParse(BeginningBalanceAmountText, out _) ) { BeginningBalanceError = "Enter a valid amount."; return; }
         if (BeginningBalanceAmount <= 0)
         {
             BeginningBalanceError = "Amount must be greater than zero.";
@@ -264,19 +294,17 @@ public partial class CashBankViewModel : ObservableObject
             }
         }
 
-        using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            await _journal.RecordBeginningBalanceAsync(accountCode, BeginningBalanceAmount, BeginningBalanceDate, 1);
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+            await _journal.RecordBeginningBalanceAsync(accountCode, BeginningBalanceAmount, BeginningBalanceDate.Value, 1);
             await _db.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            IsSettingBeginningBalance = false;
-            await LoadAsync();
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
+            _db.ChangeTracker.Clear();
             var msg = ex.Message;
             var inner = ex.InnerException;
             while (inner != null)
@@ -285,7 +313,12 @@ public partial class CashBankViewModel : ObservableObject
                 inner = inner.InnerException;
             }
             BeginningBalanceError = $"Error: {msg}";
+            return;
         }
+
+        IsSettingBeginningBalance = false;
+        try { await LoadAsync(); }
+        catch (Exception ex) { BeginningBalanceError = $"Beginning balance saved. Refresh failed: {ex.Message}. Reload the screen; do not save again."; }
     }
 }
 

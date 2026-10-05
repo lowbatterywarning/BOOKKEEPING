@@ -130,6 +130,11 @@ public partial class ProgramsViewModel : ObservableObject
                     return;
                 }
 
+        if (await _db.Programs.AnyAsync(p => p.Name == EditName.Trim() && (SelectedProgram == null || p.Id != SelectedProgram.Id)))
+        { EditErrorMessage = "A program with this name already exists. Choose another name."; return; }
+        try
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
                 if (SelectedProgram == null)
                 {
                     _db.Programs.Add(new OrgProgram
@@ -151,8 +156,12 @@ public partial class ProgramsViewModel : ObservableObject
                 }
 
         await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        }
+        catch (Exception ex)
+        { _db.ChangeTracker.Clear(); EditErrorMessage = $"Could not save program: {ex.InnerException?.Message ?? ex.Message}"; return; }
         IsEditing = false;
-        await LoadAsync();
+        try { await LoadAsync(); } catch (Exception ex) { EditErrorMessage = $"Program saved. Refresh failed: {ex.Message}"; }
     }
 
     [RelayCommand]

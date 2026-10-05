@@ -21,12 +21,18 @@
         </Grid.RowDefinitions>
 
         <!-- Header with action buttons -->
+        <StackPanel>
         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
             <TextBlock Text="Cash &amp; Bank Ledger" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
             <Button Content="↔ Transfer" Width="100" Background="#8e44ad" Foreground="White"
                     FontWeight="SemiBold" Margin="20,0,0,0" Command="{Binding ShowTransferFormCommand}"/>
             <Button Content="Set Beginning Balance" Width="150" Background="#2980b9" Foreground="White"
                     Margin="8,0,0,0" Command="{Binding ShowBeginningBalanceFormCommand}"/>
+        </StackPanel>
+            <TextBlock Text="{Binding TransferError}" Foreground="#c0392b" TextWrapping="Wrap"
+                       Visibility="{Binding TransferError, Converter={StaticResource StringToVisibilityConverter}}" Margin="0,0,0,6"/>
+            <TextBlock Text="{Binding BeginningBalanceError}" Foreground="#c0392b" TextWrapping="Wrap"
+                       Visibility="{Binding BeginningBalanceError, Converter={StaticResource StringToVisibilityConverter}}" Margin="0,0,0,6"/>
         </StackPanel>
 
         <!-- Transfer Form -->
@@ -50,7 +56,7 @@
                     </StackPanel>
                     <StackPanel Margin="0,0,10,0" Width="120">
                         <TextBlock Text="Amount" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding TransferAmount, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Text="{Binding TransferAmountText, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
                     <StackPanel Width="200">
                         <TextBlock Text="Notes" FontWeight="SemiBold"/>
@@ -83,7 +89,7 @@
                     </StackPanel>
                     <StackPanel Width="150" Margin="0,0,10,0">
                         <TextBlock Text="Opening Balance" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding BeginningBalanceAmount, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Text="{Binding BeginningBalanceAmountText, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
                     <StackPanel Width="160">
                         <TextBlock Text="Date" FontWeight="SemiBold"/>

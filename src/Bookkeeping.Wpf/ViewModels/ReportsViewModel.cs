@@ -10,6 +10,7 @@ namespace Bookkeeping.Wpf.ViewModels;
 public partial class ReportsViewModel : ObservableObject
 {
     private readonly AppDbContext _db;
+    private int _reportVersion;
     private readonly Services.ReportService _reportService;
     private readonly Services.ExportService _exportService;
 
@@ -39,37 +40,48 @@ public partial class ReportsViewModel : ObservableObject
         _exportService = exportService;
     }
 
+    partial void OnSelectedReportTypeChanged(string value)
+    {
+        _reportVersion++;
+        DonationReport.Clear(); ExpenseReport.Clear(); TotalAmount = 0; RowCount = 0;
+        StatusMessage = "Report type changed. Click Generate to refresh.";
+    }
+
     [RelayCommand]
     public async Task LoadAsync()
     {
         _db.ChangeTracker.Clear();
-        Sponsors = new ObservableCollection<Sponsor>(await _db.Sponsors.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync());
-        Programs = new ObservableCollection<OrgProgram>(await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
+        PickerRefresh.Update(Sponsors, await _db.Sponsors.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync());
+        PickerRefresh.Update(Programs, await _db.Programs.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync());
         await GenerateReportAsync();
     }
 
     [RelayCommand]
     public async Task GenerateReportAsync()
     {
+        var version = ++_reportVersion;
+        var reportType = SelectedReportType;
         IsLoading = true;
         StatusMessage = "Generating report...";
         try
         {
-            if (SelectedReportType == "Donation")
+            if (reportType == "Donation")
             {
                 var donations = await _reportService.GetDonationReportAsync(DateFrom, DateTo, FilterSponsor?.Id, FilterProgram?.Id, FilterPaymentMethod);
+                if (version != _reportVersion) return;
                 DonationReport = new ObservableCollection<Services.DonationReportRow>(donations);
                 TotalAmount = donations.Sum(d => d.Amount); RowCount = donations.Count;
             }
             else
             {
                 var expenses = await _reportService.GetExpenseReportAsync(DateFrom, DateTo, FilterProgram?.Id, FilterPaymentMethod);
+                if (version != _reportVersion) return;
                 ExpenseReport = new ObservableCollection<Services.ExpenseReportRow>(expenses);
                 TotalAmount = expenses.Sum(e => e.Amount); RowCount = expenses.Count;
             }
             StatusMessage = $"Report generated: {RowCount} rows, {TotalAmount:C} total.";
         }
-        catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
+        catch (Exception ex) { if (version == _reportVersion) StatusMessage = $"Error: {ex.Message}"; }
         finally { IsLoading = false; }
     }
 

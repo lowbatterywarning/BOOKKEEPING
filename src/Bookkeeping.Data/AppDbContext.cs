@@ -169,6 +169,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Budget>(e =>
         {
             e.HasIndex(b => new { b.Year, b.Month, b.ProgramId }).IsUnique();
+            e.HasIndex(b => new { b.Year, b.ProgramId }).IsUnique()
+                .HasDatabaseName("IX_Budgets_AnnualProgram")
+                .HasFilter("Month IS NULL AND ProgramId IS NOT NULL");
             e.Property(b => b.Amount).HasColumnType("decimal(18,2)");
             e.Property(b => b.Notes).HasMaxLength(500);
             e.HasOne(b => b.Program).WithMany().HasForeignKey(b => b.ProgramId).OnDelete(DeleteBehavior.Cascade);

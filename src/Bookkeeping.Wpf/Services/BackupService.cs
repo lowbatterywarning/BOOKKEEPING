@@ -105,7 +105,7 @@ public class BackupService
                 Directory.CreateDirectory(Path.GetDirectoryName(file.Path)!);
                 file.Entry.ExtractToFile(file.Path);
             }
-            ValidateDatabase(stagedDatabase);
+            ValidateDatabase(stagedDatabase, Path.Combine(staging, "attachments"));
 
             var recoverySuffix = $".pre_restore_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}";
             if (File.Exists(_dbPath)) CopyDatabase(_dbPath, _dbPath + recoverySuffix + ".bak");
@@ -142,7 +142,7 @@ public class BackupService
         source.BackupDatabase(destination);
     }
 
-    private static void ValidateDatabase(string dbPath)
+    private static void ValidateDatabase(string dbPath, string attachmentsRoot)
     {
         using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
         { DataSource = dbPath, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString());
@@ -154,6 +154,9 @@ public class BackupService
         check.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('JournalEntries', 'Donations', 'Expenses', 'Users')";
         if (Convert.ToInt64(check.ExecuteScalar()) != 4)
             throw new InvalidDataException("The backup is not a Bookkeeping database.");
+        check.CommandText = "SELECT ReceiptAttachmentPath FROM Expenses WHERE ReceiptAttachmentPath IS NOT NULL AND ReceiptAttachmentPath <> ''";
+        using var receipts = check.ExecuteReader();
+        while (receipts.Read()) ReceiptPaths.Resolve(attachmentsRoot, receipts.GetString(0));
     }
 
     public static string? ShowBackupSaveDialog()

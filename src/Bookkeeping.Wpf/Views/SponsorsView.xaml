@@ -154,7 +154,7 @@
                                             <ColumnDefinition Width="100"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{Binding ProgramName}" VerticalAlignment="Center"/>
-                                        <TextBox Grid.Column="1" Text="{Binding TargetAmount, UpdateSourceTrigger=PropertyChanged}" Height="24"/>
+                                        <TextBox Grid.Column="1" Text="{Binding TargetAmountText, UpdateSourceTrigger=PropertyChanged}" Height="24"/>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

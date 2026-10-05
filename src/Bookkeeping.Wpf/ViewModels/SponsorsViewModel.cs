@@ -76,7 +76,7 @@ public partial class SponsorsViewModel : ObservableValidator
 
         var displays = sponsors.Select(s =>
         {
-            var relevantTargets = FilterProgramId.HasValue ? s.Targets.Where(t => t.ProgramId == FilterProgramId.Value).ToList() : s.Targets.ToList();
+            var relevantTargets = s.Targets.Where(t => (t.Year == null || t.Year == today.Year) && (!FilterProgramId.HasValue || t.ProgramId == FilterProgramId.Value)).ToList();
             var totalTarget = relevantTargets.Sum(t => t.TargetAmount);
             var targetDetails = relevantTargets.Any() ? string.Join(", ", relevantTargets.Select(t => $"{t.Program.Name}: {t.TargetAmount:C}")) : "";
             return new SponsorDisplay
@@ -112,6 +112,7 @@ public partial class SponsorsViewModel : ObservableValidator
     {
         EditErrorMessage = null;
         if (string.IsNullOrWhiteSpace(EditName)) { EditErrorMessage = "Name is required."; return; }
+        if (EditTargets.Any(t => !decimal.TryParse(t.TargetAmountText, out _))) { EditErrorMessage = "Enter a valid target amount for every program."; return; }
         if (EditTargets.Any(t => t.TargetAmount < 0)) { EditErrorMessage = "Targets cannot be negative."; return; }
         ValidateAllProperties();
         if (HasErrors)
@@ -218,9 +219,20 @@ public class SponsorDisplay
     public string TargetDisplay => TotalTargetAmount > 0 ? $"{DonationsThisYear:C} / {TotalTargetAmount:C}" : $"{DonationsThisYear:C}";
 }
 
-public class ProgramTargetEdit
+public partial class ProgramTargetEdit : ObservableObject
 {
     public int ProgramId { get; set; }
     public string ProgramName { get; set; } = "";
-    public decimal TargetAmount { get; set; }
+    [ObservableProperty] private decimal _targetAmount;
+
+    private bool _editingTargetAmount;
+    private string _targetAmountText = "0";
+    public string TargetAmountText
+    {
+        get => _targetAmountText;
+        set { SetProperty(ref _targetAmountText, value); if (decimal.TryParse(value, out var amount)) { _editingTargetAmount = true; try { TargetAmount = amount; } finally { _editingTargetAmount = false; } } }
+    }
+    partial void OnTargetAmountChanged(decimal value)
+    { if (_editingTargetAmount) return; _targetAmountText = value.ToString(System.Globalization.CultureInfo.CurrentCulture); OnPropertyChanged(nameof(TargetAmountText)); }
+
 }
